@@ -113,7 +113,7 @@ public class ModSelectorMode : ShipLogMode
         GameObject gameObject = Instantiate(template, template.transform.parent);
         gameObject.name = "EntryListItem_" + _listItems.Count;
         ShipLogEntryListItem item = gameObject.GetComponent<ShipLogEntryListItem>();
-        //item._nameField.text = "Test " + _listItems.Count;
+        item._nameField.text = "Test " + _listItems.Count;
         _listItems.Add(item);
         //_listItems[i].Init(_fontAndLanguageController);
         UpdateListItemVisuals();
@@ -197,7 +197,6 @@ public class ModSelectorMode : ShipLogMode
     public override void OnExitComputer()
     {
         // No-op
-        // Go to prev mode if we are still the current mode?
     }
 
     public override void UpdateMode()

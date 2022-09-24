@@ -2,7 +2,6 @@
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
-using OWML.Common;
 using OWML.ModHelper;
 
 namespace CustomShipLogModes;
@@ -10,13 +9,16 @@ namespace CustomShipLogModes;
 [HarmonyPatch]
 public class CustomShipLogModes : ModBehaviour
 {
-    private static ModSelectorMode _modSelectorMode;
-    private static ShipLogMode _goBackMode;
-    private static bool init;
     public static CustomShipLogModes Instance;
-    
-    // TODO: Move Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/ScreenPromptListScaleRoot/ TO LAST CHILD
+   
+    private static ModSelectorMode _modSelectorMode;
+    private static bool init;
 
+    private ShipLogController _shipLogController;
+    private ShipLogMode _goBackMode;
+
+    // TODO: Move Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/ScreenPromptListScaleRoot/ TO LAST CHILD
+    // TODO: Add "C" (detective/map) and "F" prompts (custom/menu) make visible when needed
     private void Start()
     {
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
@@ -56,6 +58,7 @@ public class CustomShipLogModes : ModBehaviour
         // TODO: MOve!
         if (!init)
         {
+            Instance._shipLogController = __instance;
             _modSelectorMode = new ModSelectorMode();
             // TODO: Save the prompt lists
             _modSelectorMode.Initialize(__instance._centerPromptList, __instance._upperRightPromptList,
@@ -63,40 +66,64 @@ public class CustomShipLogModes : ModBehaviour
             init = true;
         }
     
-        if (__instance._currentMode.AllowModeSwap() && Input.IsNewlyPressed(Input.Action.OpenModeSelector))
-        {
-            ShipLogMode enteringMode;
-            if (__instance._currentMode != _modSelectorMode)
-            {
-                enteringMode = _modSelectorMode;
-                _goBackMode = __instance._currentMode; // TODO: Move to ChangeMode?
-            }
-            else
-            {
-                enteringMode = _goBackMode;
-            }
-            ChangeMode(__instance, _modSelectorMode);
-        }
-        // TODO: Swap key
+        Instance.UpdateChangeMode();
     }
 
-    // TODO: Keep shipLogController in field?
-    private static void ChangeMode(ShipLogController shipLogController,ShipLogMode enteringMode)
+    private void UpdateChangeMode()
     {
-        ShipLogMode leavingMode = shipLogController._currentMode;
+        ShipLogMode currentMode = _shipLogController._currentMode;
+        if (currentMode.AllowModeSwap())
+        {
+            if (Input.IsNewlyPressed(Input.Action.OpenModeSelector))
+            {
+                // TODO: < 2 cases
+                _goBackMode = currentMode;
+                ChangeMode(_modSelectorMode);
+            }
+            else if (Input.IsNewlyPressed(Input.Action.SwapMode))
+            {
+                ShipLogMode mapMode = _shipLogController._mapMode;
+                ShipLogMode detectiveMode = _shipLogController._detectiveMode;
+                if (currentMode == mapMode)
+                {
+                    // We know detective mode is enabled because AllowModeSwap
+                    ChangeMode(detectiveMode);
+                }
+                else if (currentMode == detectiveMode)
+                {
+                    ChangeMode(mapMode);
+                }
+                else  // TODO: Check only custom mode?
+                {
+                    ChangeMode(PlayerData.GetDetectiveModeEnabled() ? detectiveMode : mapMode);
+                }
+            }
+        }
+        if (currentMode == _modSelectorMode && Input.IsNewlyPressed(Input.Action.CloseModeSelector) && _goBackMode != null)
+        {
+            // Check null just in case this mode wasn't opened from the expected path
+            // I would like to move this to ModSelectorMode.UpdateMode, but UpdateMode is called before the postfix and could reopen the menu 
+            // TODO: Don't show the prompt in that case
+            ChangeMode(_goBackMode);
+        }
+    }
+
+    private void ChangeMode(ShipLogMode enteringMode)
+    {
+        ShipLogMode leavingMode = _shipLogController._currentMode;
         string focusedEntryID = leavingMode.GetFocusedEntryID();
         leavingMode.ExitMode();
-        shipLogController._currentMode = enteringMode;
-        shipLogController._currentMode.EnterMode(focusedEntryID);
-        // This is done originally done in ShipLogController.Update but we are preventing it
+        _shipLogController._currentMode = enteringMode;
+        _shipLogController._currentMode.EnterMode(focusedEntryID);
+        // This is done originally done in ShipLogController.Update but we are preventing it with the transpiler
         // Other modes should implement the sound inside EnterMode if they want to
-        if (shipLogController._currentMode is ShipLogMapMode)
+        if (_shipLogController._currentMode is ShipLogMapMode)
         {
-            shipLogController._oneShotSource.PlayOneShot(AudioType.ShipLogEnterMapMode);
+            _shipLogController._oneShotSource.PlayOneShot(AudioType.ShipLogEnterMapMode);
         }
-        else if (shipLogController._currentMode is ShipLogDetectiveMode)
+        else if (_shipLogController._currentMode is ShipLogDetectiveMode)
         {
-            shipLogController._oneShotSource.PlayOneShot(AudioType.ShipLogEnterDetectiveMode);
+            _shipLogController._oneShotSource.PlayOneShot(AudioType.ShipLogEnterDetectiveMode);
         }
     }
 }
