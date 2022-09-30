@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
-using System.Reflection.Emit;
 using HarmonyLib;
 using OWML.ModHelper;
+using UnityEngine;
 
 namespace CustomShipLogModes;
 
@@ -10,92 +11,130 @@ namespace CustomShipLogModes;
 public class CustomShipLogModes : ModBehaviour
 {
     public static CustomShipLogModes Instance;
-   
-    private static ModSelectorMode _modSelectorMode;
-    private static bool init;
 
-    private ShipLogController _shipLogController;
+    private ModSelectorMode _modSelectorMode;
+    private Dictionary<ShipLogMode, Tuple<Func<bool>, Func<string>>> _modes = new();
+
+    private static ShipLogController _shipLogController;
     private ShipLogMode _goBackMode;
 
+    private ScreenPrompt _modeSelectorPrompt;
+    private ScreenPrompt _modeSwapPrompt;
+
     // TODO: Move Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/ScreenPromptListScaleRoot/ TO LAST CHILD
-    // TODO: Add "C" (detective/map) and "F" prompts (custom/menu) make visible when needed
+    // TODO: Add "C" (detective/map) and "F" prompts (custom/menu) make visible when needed 
+    // TODO: Check null custom modes, clean
     private void Start()
     {
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
         Instance = this;
+        LoadManager.OnCompleteSceneLoad += OnCompleteSceneLoad;
     }
 
-    [HarmonyTranspiler]
-    [HarmonyPatch(typeof(ShipLogController), nameof(ShipLogController.Update))]
-    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    private void OnCompleteSceneLoad(OWScene originalScene, OWScene loadScene)
     {
-        // We want to do the "mode swap" logic ourselves in the postfix
-        // Is the transpiler really necessary? Probably not
-        bool found = false;
-        bool replaceNext = false;
-        foreach (var instruction in instructions)
-        {
-            if (!found && instruction.Calls(typeof(ShipLogMode).GetMethod("AllowModeSwap")))
-            {
-                found = true;
-                replaceNext = true;
-            }
-            else if (replaceNext)
-            {
-                replaceNext = false;
-                // Replace AllowSwap return value with "false"
-                yield return new CodeInstruction(OpCodes.Pop);
-                yield return new CodeInstruction(OpCodes.Ldc_I4_0);
-            }
-            yield return instruction;
-        }
+        _shipLogController = null;
+        // Don't clean _modes, maybe a mod added a mode before this?, "nulls" (destroyed) will be ignored for now
     }
     
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(ShipLogController), nameof(ShipLogController.Update))]
-    private static void ShipLogController_Update(ShipLogController __instance)
+    public void Setup(ShipLogController shipLogController)
     {
-        // TODO: MOve!
-        if (!init)
-        {
-            Instance._shipLogController = __instance;
-            _modSelectorMode = new ModSelectorMode();
-            // TODO: Save the prompt lists
-            _modSelectorMode.Initialize(__instance._centerPromptList, __instance._upperRightPromptList,
-                __instance._oneShotSource);
-            init = true;
-        }
-    
-        Instance.UpdateChangeMode();
+        SetupPrompts();
+        _shipLogController = FindObjectOfType<ShipLogController>();
+        
+        GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
+        GameObject selectorModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
+        _modSelectorMode = selectorModeGo.AddComponent<ModSelectorMode>();
+        InitializeMode(_modSelectorMode);
+
+        AddMode(shipLogController._mapMode, () => true, () => UITextLibrary.GetString(UITextType.LogMapModePrompt));
+        AddMode(shipLogController._detectiveMode, () => PlayerData.GetDetectiveModeEnabled(), () => UITextLibrary.GetString(UITextType.LogMapModePrompt));
+        AddMode(_modSelectorMode, () => true, () => UITextLibrary.GetString(UITextType.LogMapModePrompt));
+        AddMode(_modSelectorMode, () => true, () => UITextLibrary.GetString(UITextType.LogMapModePrompt));
     }
 
-    private void UpdateChangeMode()
+    private void SetupPrompts()
+    {
+        // The text is updated
+        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), "");
+        _modeSwapPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SwapMode), "");
+    }
+
+    private void InitializeMode(ShipLogMode mode)
+    {
+        bool canvasActive = _shipLogController._shipLogCanvas.gameObject.activeSelf;
+        _shipLogController._shipLogCanvas.gameObject.SetActive(true);
+        mode.Initialize(_shipLogController._centerPromptList, _shipLogController._upperRightPromptList, _shipLogController._oneShotSource);
+        _shipLogController._shipLogCanvas.gameObject.SetActive(canvasActive);
+    }
+
+    private void AddMode(ShipLogMode mode, Func<bool> isEnabledSupplier, Func<string> nameSupplier)
+    {
+        if (_modes.ContainsKey(mode))
+        {
+            ModHelper.Console.WriteLine("Mode " + mode + " already added, replacing suppliers...");
+        }
+        _modes[mode] = new Tuple<Func<bool>, Func<string>>(isEnabledSupplier, nameSupplier);
+    }
+
+    public void UpdatePromptsVisibility()
     {
         ShipLogMode currentMode = _shipLogController._currentMode;
+        List<ShipLogMode> customModes = GetCustomModes();
+        bool isCustomMode = customModes.Contains(currentMode);
+
+        // TODO: AllowSwap, position odd (Back to Map Mode -> Select Mode)
+        _modeSelectorPrompt.SetVisibility((IsVanillaMode(currentMode) && customModes.Count >= 1)
+                                          || (isCustomMode && customModes.Count >= 2));
+        _modeSelectorPrompt.SetText(customModes.Count == 1? GetModeName(customModes[0]) : "Select Mode");
+
+        _modeSwapPrompt.SetVisibility(isCustomMode); // Vanilla modes add their own prompts
+        _modeSwapPrompt.SetText(PlayerData.GetDetectiveModeEnabled()? 
+            UITextLibrary.GetString(UITextType.LogRumorModePrompt) : 
+            UITextLibrary.GetString(UITextType.LogMapModePrompt));
+    }
+ 
+    internal void UpdateChangeMode()
+    {
+        // TODO: Use same for UpdatePromptsVisibility and UpdateChangeMode?
+        ShipLogMode currentMode = _shipLogController._currentMode;
+        List<ShipLogMode> customModes = GetCustomModes();
+        bool isCustomMode = customModes.Contains(currentMode);
+        
         if (currentMode.AllowModeSwap())
         {
-            if (Input.IsNewlyPressed(Input.Action.OpenModeSelector))
+            if (_modeSelectorPrompt.IsVisible() && Input.IsNewlyPressed(Input.Action.OpenModeSelector))
             {
-                // TODO: < 2 cases
+                if (customModes.Count == 1)
+                {
+                    ChangeMode(customModes[0]);
+                    return;
+                }
                 _goBackMode = currentMode;
                 ChangeMode(_modSelectorMode);
+                return;
             }
-            else if (Input.IsNewlyPressed(Input.Action.SwapMode))
+
+            if (Input.IsNewlyPressed(Input.Action.SwapMode))
             {
+                // Don't check _modeSwapPrompt.IsVisible (because of vanilla cases)
                 ShipLogMode mapMode = _shipLogController._mapMode;
                 ShipLogMode detectiveMode = _shipLogController._detectiveMode;
                 if (currentMode == mapMode)
                 {
                     // We know detective mode is enabled because AllowModeSwap
                     ChangeMode(detectiveMode);
+                    return;
                 }
-                else if (currentMode == detectiveMode)
+                if (currentMode == detectiveMode)
                 {
                     ChangeMode(mapMode);
+                    return;
                 }
-                else  // TODO: Check only custom mode?
+                if (isCustomMode)
                 {
                     ChangeMode(PlayerData.GetDetectiveModeEnabled() ? detectiveMode : mapMode);
+                    return;   
                 }
             }
         }
@@ -104,7 +143,7 @@ public class CustomShipLogModes : ModBehaviour
             // Check null just in case this mode wasn't opened from the expected path
             // I would like to move this to ModSelectorMode.UpdateMode, but UpdateMode is called before the postfix and could reopen the menu 
             // TODO: Don't show the prompt in that case
-            ChangeMode(_goBackMode);
+            ChangeMode(_goBackMode); // It could be inactive but ok
         }
     }
 
@@ -125,5 +164,42 @@ public class CustomShipLogModes : ModBehaviour
         {
             _shipLogController._oneShotSource.PlayOneShot(AudioType.ShipLogEnterDetectiveMode);
         }
+    }
+
+    private bool IsVanillaMode(ShipLogMode mode)
+    {
+        return mode == _shipLogController._mapMode || mode == _shipLogController._detectiveMode;
+    }
+
+    private List<ShipLogMode> GetCustomModes()
+    {
+        List<ShipLogMode> customModes = new List<ShipLogMode>();
+        foreach (var (mode, tuple) in _modes)
+        {
+            if (mode != null && !IsVanillaMode(mode) && tuple.Item1.Invoke())
+            {
+                customModes.Add(mode);
+            }
+        }
+        return customModes;
+    }
+
+    private string GetModeName(ShipLogMode mode)
+    {
+        return _modes[mode].Item2.Invoke();
+    }
+
+    public void OnEnterShipComputer()
+    {
+        PromptManager promptManager = Locator.GetPromptManager();
+        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
+    }
+
+    public void OnExitShipComputer()
+    {
+        PromptManager promptManager = Locator.GetPromptManager();
+        promptManager.RemoveScreenPrompt(_modeSwapPrompt);
+        promptManager.RemoveScreenPrompt(_modeSelectorPrompt);
     }
 }

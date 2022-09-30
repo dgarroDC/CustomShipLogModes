@@ -1,14 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace CustomShipLogModes;
 
+// TODO: Extract TextListMode
 // Heavily based on ShipLogMapMode
 public class ModSelectorMode : ShipLogMode
 {
+    // TODO: Translation
+    public static readonly string NAME = "Select Mode";
+   
     private ScreenPromptList _upperRightPromptList; // TODO: Enter selected mode? (E?)
     private OWAudioSource _oneShotSource;
     private CanvasGroupAnimator _mapModeAnimator;
@@ -23,7 +25,7 @@ public class ModSelectorMode : ShipLogMode
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
-        _oneShotSource.PlayOneShot(AudioType.ShipLogSelectPlanet);
+        _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
         _prevEntryId = entryID;
         // Important if we are the first mode on enter computer (although that shouldn't be possible I think), alpha is reset or something...
@@ -33,7 +35,6 @@ public class ModSelectorMode : ShipLogMode
     public override void ExitMode()
     {
         _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
-        _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
     }
 
     public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
@@ -41,17 +42,15 @@ public class ModSelectorMode : ShipLogMode
         _upperRightPromptList = upperRightPromptList;
         _oneShotSource = oneShotSource;
 
-        // Create "fake map mode"
-        GameObject mapMode = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
-        GameObject fakeMapMode = Instantiate(mapMode, mapMode.transform.position, mapMode.transform.rotation, mapMode.transform.parent);
-        Destroy(fakeMapMode.transform.Find("ScaleRoot").gameObject);
-        Destroy(fakeMapMode.transform.Find("ReticleImage").gameObject);
-        fakeMapMode.DestroyAllComponents<ShipLogMapMode>();
+        // Modify map mode clone
+        Destroy(gameObject.transform.Find("ScaleRoot").gameObject);
+        Destroy(gameObject.transform.Find("ReticleImage").gameObject);
+        gameObject.DestroyAllComponents<ShipLogMapMode>();
 
-        RectTransform entryMenu = fakeMapMode.transform.Find("EntryMenu").GetRequiredComponent<RectTransform>();
+        RectTransform entryMenu = gameObject.transform.Find("EntryMenu").GetRequiredComponent<RectTransform>();
 
         // Init animations
-        _mapModeAnimator = fakeMapMode.GetComponent<CanvasGroupAnimator>();
+        _mapModeAnimator = gameObject.GetComponent<CanvasGroupAnimator>();
         // Change animation?
         _mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
         entryMenu.GetComponent<CanvasGroupAnimator>().SetImmediate(1f, Vector3.one); // Always visible inside the mode
@@ -69,7 +68,7 @@ public class ModSelectorMode : ShipLogMode
         entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594); 
         
         // TODO: Translations
-        fakeMapMode.transform.Find("NamePanelRoot").Find("Name").GetComponent<Text>().text = "Select Mode";
+        gameObject.transform.Find("NamePanelRoot").Find("Name").GetComponent<Text>().text = NAME;
 
         // Init entry list
         _entryListRoot = entryListRoot.Find("EntryList").GetRequiredComponent<RectTransform>();
@@ -100,9 +99,6 @@ public class ModSelectorMode : ShipLogMode
         AddEntry();
         AddEntry();
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
-        // Set focus? < 2 entries?
-        SetEntryFocus(0);
-        
         _listNavigator = new ListNavigator();
     }
 
@@ -116,7 +112,7 @@ public class ModSelectorMode : ShipLogMode
         item._nameField.text = "Test " + _listItems.Count;
         _listItems.Add(item);
         //_listItems[i].Init(_fontAndLanguageController);
-        UpdateListItemVisuals();
+        UpdateListItemVisuals(); // TODO: ??
     }
 
     private void SetEntryFocus(int index)
