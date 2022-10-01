@@ -12,7 +12,8 @@ public static class Input
         ListDown,
         OpenModeSelector,
         CloseModeSelector,
-        SwapMode
+        SwapMode,
+        SelectMode
     }
 
     private static List<IInputCommands> GetInputCommands(Action action)
@@ -26,9 +27,11 @@ public static class Input
             case Action.OpenModeSelector:
                 return new List<IInputCommands>{InputLibrary.flashlight};
             case Action.CloseModeSelector:
-                return new List<IInputCommands>{InputLibrary.cancel, InputLibrary.flashlight, InputLibrary.swapShipLogMode};
+                return new List<IInputCommands>{InputLibrary.cancel, InputLibrary.flashlight};
             case Action.SwapMode:
                 return new List<IInputCommands>{InputLibrary.swapShipLogMode};
+            case Action.SelectMode:
+                return new List<IInputCommands>{InputLibrary.interact};
         }
 
         return null;

@@ -50,17 +50,20 @@ public class Patches
     }
     
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(ShipLogController), nameof(ShipLogController.EnterShipComputer))]
-    private static void ShipLogController_EnterShipComputer()
+    [HarmonyPatch(typeof(ShipLogSplashScreen), nameof(ShipLogSplashScreen.OnEnterComputer))]
+    private static void ShipLogSplashScreen_OnEnterComputer()
     {
-        // TODO: Review this called after EnterMode, is that ok? Prompt order changess!
+        // We use ShipLogSplashScreen instead of ShipLogController to get here before the EnterMode
+        // (that could add prompts and have a different order after swapping modes)
         CustomShipLogModes.Instance.OnEnterShipComputer();
     }
     
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(ShipLogController), nameof(ShipLogController.ExitShipComputer))]
-    private static void ShipLogController_ExitShipComputer()
+    [HarmonyPatch(typeof(ShipLogSplashScreen), nameof(ShipLogSplashScreen.OnExitComputer))]
+    private static void ShipLogSplashScreen_OnExitComputer()
     {
+        // This could use ShipLogController but we also use ShipLogSplashScreen here for consistency I guess,
+        // this way all modes are called to their hooks one upon another, just in case
         CustomShipLogModes.Instance.OnExitShipComputer();
     }
 }

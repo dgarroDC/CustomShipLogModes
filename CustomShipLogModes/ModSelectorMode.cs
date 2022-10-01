@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,20 +24,7 @@ public class ModSelectorMode : ShipLogMode
     private RectTransform _entrySelectArrow;
 
     private string _prevEntryId;
-
-    public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
-    {
-        _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
-        _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
-        _prevEntryId = entryID;
-        // Important if we are the first mode on enter computer (although that shouldn't be possible I think), alpha is reset or something...
-        UpdateListItemVisuals();
-    }
-
-    public override void ExitMode()
-    {
-        _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
-    }
+    private List<Tuple<ShipLogMode,string>> _modes = new();
 
     public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
     {
@@ -66,8 +55,7 @@ public class ModSelectorMode : ShipLogMode
         // Expand vertically because we don't currently use description field
         // Magic number to match the bottom line with the description field, idk how to properly calculate it
         entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594); 
-        
-        // TODO: Translations
+
         gameObject.transform.Find("NamePanelRoot").Find("Name").GetComponent<Text>().text = NAME;
 
         // Init entry list
@@ -82,37 +70,34 @@ public class ModSelectorMode : ShipLogMode
         }
         _listItems = new List<ShipLogEntryListItem>();
         // TODO: Was Init called in this one? Then all copies too
-        _listItems.Add(oldListItems[0]);
-        // TODO: Can remove entries?
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
-        AddEntry();
+        SetupAndAddItem(oldListItems[0]);
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
         _listNavigator = new ListNavigator();
     }
 
+    public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
+    {
+        // Yes, I'm using this sound for this, but it actually sound really good, don't judge me
+        _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
+        _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
+        _prevEntryId = entryID;
+
+        UpdateAvailableModes();
+        UpdateListItemVisuals(); // Do this because otherwise alphas are reset or something
+    }
+
+    public override void ExitMode()
+    {
+        _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
+    }
+
     public void AddEntry()
     {
-        // Keep same entry focus even if it changes index? (Alphabetical order)
         GameObject template = _listItems[0].gameObject;
-        GameObject gameObject = Instantiate(template, template.transform.parent);
-        gameObject.name = "EntryListItem_" + _listItems.Count;
-        ShipLogEntryListItem item = gameObject.GetComponent<ShipLogEntryListItem>();
-        item._nameField.text = "Test " + _listItems.Count;
-        _listItems.Add(item);
-        //_listItems[i].Init(_fontAndLanguageController);
-        UpdateListItemVisuals(); // TODO: ??
+        GameObject newEntry = Instantiate(template, template.transform.parent);
+        newEntry.name = "EntryListItem_" + _listItems.Count;
+        ShipLogEntryListItem item = newEntry.GetComponent<ShipLogEntryListItem>();
+        SetupAndAddItem(item);
     }
 
     private void SetEntryFocus(int index)
@@ -138,7 +123,7 @@ public class ModSelectorMode : ShipLogMode
 
         _entryIndex = index;
         UpdateListItemVisuals();
-        _oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
+        _oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries); // TODO: Avoid on first enter
     }
 
     private void UpdateListItemVisuals()
@@ -181,28 +166,78 @@ public class ModSelectorMode : ShipLogMode
 
     private void SetFocus(ShipLogEntryListItem item, bool focus)
     {
-        item._focusAlpha = (focus ? 1f : 0.2f);
+        item._focusAlpha = focus ? 1f : 0.2f;
         item.UpdateAlpha();
+    }
+    
+    private void SetupAndAddItem(ShipLogEntryListItem item)
+    {
+        item._unreadIcon.gameObject.SetActive(false);
+        item._hudMarkerIcon.gameObject.SetActive(false);
+        item._moreToExploreIcon.gameObject.SetActive(false);
+        // This is probably false already, we don't want to call Update() (no animation or entry)
+        item.enabled = false;
+        _listItems.Add(item);
     }
 
     public override void OnEnterComputer()
-    {
-       // No-op
+    { 
+        // No-op
     }
 
     public override void OnExitComputer()
-    {
+    { 
         // No-op
     }
 
     public override void UpdateMode()
     {
-        // TODO: size >= 2?
+        // Just in case a mode was disabled/added/renamed, do we really need to check this now?
+        if (UpdateAvailableModes())
+        {
+            return;
+        }
         int selectionChange = _listNavigator.GetSelectionChange();
         if (selectionChange != 0)
         {
             SetEntryFocus(_entryIndex + selectionChange);
         }
+    }
+
+    private bool UpdateAvailableModes()
+    {
+        List<Tuple<ShipLogMode, string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes();
+        if (!modes.SequenceEqual(_modes))
+        {
+            _modes = modes;
+            while (_listItems.Count < modes.Count)
+            {
+                AddEntry();
+            }
+            for (var i = 0; i < _listItems.Count; i++)
+            {
+                ShipLogEntryListItem item = _listItems[i];
+                if (i < modes.Count)
+                {
+                    item.gameObject.SetActive(true);
+                    item._nameField.text = modes[i].Item2;
+                }
+                else
+                {
+                    item.gameObject.SetActive(false);
+                }
+            }
+            
+            SetEntryFocus(0); // TODO: Try to select the previous selection?
+            return true;
+        }
+
+        return false;
+    }
+
+    public ShipLogMode GetSelectedMode()
+    {
+        return _modes[_entryIndex].Item1;
     }
 
     public override string GetFocusedEntryID()
