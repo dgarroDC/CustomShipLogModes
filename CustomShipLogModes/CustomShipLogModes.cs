@@ -21,10 +21,10 @@ public class CustomShipLogModes : ModBehaviour
 
     private ScreenPrompt _modeSelectorPrompt;
     private ScreenPrompt _modeSwapPrompt;
+    private bool _AModeAvailable;
+    private bool _BModeAvailable;
 
     // TODO: Move Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/ScreenPromptListScaleRoot/ TO LAST CHILD
-    // TODO: Add "C" (detective/map) and "F" prompts (custom/menu) make visible when needed 
-    // TODO: Check null custom modes, clean
     private void Start()
     {
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
@@ -47,18 +47,17 @@ public class CustomShipLogModes : ModBehaviour
         GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
         GameObject selectorModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
         _modSelectorMode = selectorModeGo.AddComponent<ModSelectorMode>();
-
         InitializeMode(_modSelectorMode);
 
-        AddMode(shipLogController._detectiveMode, () => PlayerData.GetDetectiveModeEnabled(), () => UITextLibrary.GetString(UITextType.LogRumorModePrompt));
+        AddMode(shipLogController._detectiveMode, PlayerData.GetDetectiveModeEnabled, () => UITextLibrary.GetString(UITextType.LogRumorModePrompt));
         AddMode(shipLogController._mapMode, () => true, () => UITextLibrary.GetString(UITextType.LogMapModePrompt));
 
         ShipLogMode a  = selectorModeGo.AddComponent<ModeA>();
         ShipLogMode b  = selectorModeGo.AddComponent<ModeB>();
         InitializeMode(a);
         InitializeMode(b);
-        AddMode(b, () => true, () => "Mode B");
-        AddMode(a, () => true, () => "Mode A");
+        AddMode(b, () => _AModeAvailable, () => "Mode B");
+        AddMode(a, () => _BModeAvailable, () => "Mode A");
     }
 
     private void SetupPrompts()
@@ -87,6 +86,16 @@ public class CustomShipLogModes : ModBehaviour
 
     public void UpdatePromptsVisibility()
     {
+        if (OWInput.IsNewlyPressed(InputLibrary.autopilot))
+        {
+            _AModeAvailable = !_AModeAvailable;
+        }
+        if (OWInput.IsNewlyPressed(InputLibrary.markEntryOnHUD))
+        {
+            _BModeAvailable = !_BModeAvailable;
+        }
+        
+        
         ShipLogMode currentMode = _shipLogController._currentMode;
         List<ShipLogMode> customModes = GetCustomModes();
         bool isCustomMode = customModes.Contains(currentMode);
@@ -147,6 +156,8 @@ public class CustomShipLogModes : ModBehaviour
                 return;   
             }
         }
+
+        // TODO: Check if we are in a custom mode that is now disabled, although that would probably never happen 
 
         if (currentMode == _modSelectorMode && Input.IsNewlyPressed(Input.Action.CloseModeSelector) && _goBackMode != null)
         {
@@ -216,7 +227,7 @@ public class CustomShipLogModes : ModBehaviour
 
     public void OnEnterShipComputer()
     {
-        // TODO: MAP MODE CASE, ON ENTER COMPUTER DEFAULTS TO IT
+        // TODO: Review no detective enabled, it always defaults to map mode instead of last mode, probably nobody cares
         PromptManager promptManager = Locator.GetPromptManager();
         promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
         promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);

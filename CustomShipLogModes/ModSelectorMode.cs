@@ -69,7 +69,7 @@ public class ModSelectorMode : ShipLogMode
             Destroy(oldListItems[i].gameObject);
         }
         _listItems = new List<ShipLogEntryListItem>();
-        // TODO: Was Init called in this one? Then all copies too
+        // We now Init called in this one and so all copies will be TODO: Review in TextListMode?
         SetupAndAddItem(oldListItems[0]);
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
         _listNavigator = new ListNavigator();
@@ -104,17 +104,19 @@ public class ModSelectorMode : ShipLogMode
     {
         if (index == -1)
         {
-            index = _listItems.Count - 1;
+            index = _modes.Count - 1; // Important to use the mod list here, not the entry list!!!
         }
-        else if (index == _listItems.Count)
+        else if (index == _modes.Count)
         {
             index = 0;
         }
 
         int topIndex = Mathf.Max(0, index - 4);
-        // TODO: GetAnchoredPosition, Init not called? Font? I don't remember the issue here. Also Setup?
+        // We need at least 2 items, but this is always the case because even if we could have only one mode (map mode),
+        // to open the menu at least two custom modes were available, so 3 mods in total and that means at least 2 items
+        // because we don't delete them TODO: Review precondition no longer valid in an arbitrary TextListMode if created
         float itemsSpace = _listItems[1].gameObject.GetComponent<RectTransform>().anchoredPosition.y -
-                           _listItems[0].gameObject.GetComponent<RectTransform>().anchoredPosition.y; // TODO: We need at least 2 items!
+                           _listItems[0].gameObject.GetComponent<RectTransform>().anchoredPosition.y; 
         _entryListRoot.anchoredPosition = _origEntryListPos - new Vector2(0f, topIndex * itemsSpace);
 
         Vector3 origArrowPos = _entrySelectArrow.localPosition;
