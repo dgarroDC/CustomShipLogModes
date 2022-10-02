@@ -23,13 +23,17 @@ public class ModSelectorMode : ShipLogMode
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
 
+    private ScreenPrompt _closePrompt;
+    private ScreenPrompt _selectPrompt;
+    
     private string _prevEntryId;
     private List<Tuple<ShipLogMode,string>> _modes = new();
-
     public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
     {
         _upperRightPromptList = upperRightPromptList;
         _oneShotSource = oneShotSource;
+
+        SetupPrompts();
 
         // Modify map mode clone
         Destroy(gameObject.transform.Find("ScaleRoot").gameObject);
@@ -73,6 +77,19 @@ public class ModSelectorMode : ShipLogMode
         SetupAndAddItem(oldListItems[0]);
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
         _listNavigator = new ListNavigator();
+    }
+
+    private void SetupPrompts()
+    {
+        // The text is updated
+        _closePrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.CloseModeSelector), "");
+        _selectPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SelectMode), "");
+    }
+
+    private void UpdatePromptsVisibility()
+    {
+        _closePrompt.SetText("Go Back To " + CustomShipLogModes.Instance._goback);
+        _selectPrompt.SetText("Select " + _modes[_entryIndex].Item2);
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
@@ -194,6 +211,8 @@ public class ModSelectorMode : ShipLogMode
 
     public override void UpdateMode()
     {
+        UpdatePromptsVisibility();
+        
         // Just in case a mode was disabled/added/renamed, do we really need to check this now?
         if (UpdateAvailableModes())
         {
