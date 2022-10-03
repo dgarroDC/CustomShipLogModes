@@ -101,9 +101,7 @@ public class CustomShipLogModes : ModBehaviour
         {
             // Vanilla modes are already initialized in ShipLogController.LateInitialize
             InitializeMode(mode);
-            return;
         }
-        ModHelper.Console.WriteLine("Mode " + mode + " added but ShipLogController not initialized yet", MessageType.Info);
     }
 
     public void RequestChangeMode(ShipLogMode mode)
