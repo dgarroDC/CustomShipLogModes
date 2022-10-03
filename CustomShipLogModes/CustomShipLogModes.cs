@@ -23,9 +23,6 @@ public class CustomShipLogModes : ModBehaviour
     private ScreenPrompt _modeSelectorPrompt;
     private ScreenPrompt _modeSwapPrompt;
 
-    private bool _AModeAvailable;
-    private bool _BModeAvailable;
-
     private void Start()
     {
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
@@ -74,11 +71,6 @@ public class CustomShipLogModes : ModBehaviour
         // Add vanilla modes
         AddMode(shipLogController._detectiveMode, PlayerData.GetDetectiveModeEnabled, () => UITextLibrary.GetString(UITextType.LogRumorModePrompt));
         AddMode(shipLogController._mapMode, () => true, () => UITextLibrary.GetString(UITextType.LogMapModePrompt));
-
-        ShipLogMode a  = selectorModeGo.AddComponent<ModeA>();
-        ShipLogMode b  = selectorModeGo.AddComponent<ModeB>();
-        AddMode(b, () => _AModeAvailable, () => "Mode B");
-        AddMode(a, () => _BModeAvailable, () => "Mode A");
     }
 
     private void SetupPrompts()
@@ -127,16 +119,6 @@ public class CustomShipLogModes : ModBehaviour
 
     public void UpdatePromptsVisibility()
     {
-        if (OWInput.IsNewlyPressed(InputLibrary.autopilot))
-        {
-            _AModeAvailable = !_AModeAvailable;
-        }
-        if (OWInput.IsNewlyPressed(InputLibrary.markEntryOnHUD))
-        {
-            _BModeAvailable = !_BModeAvailable;
-        }
-        
-        
         ShipLogMode currentMode = _shipLogController._currentMode;
         List<ShipLogMode> customModes = GetCustomModes();
         bool isCustomMode = customModes.Contains(currentMode);
