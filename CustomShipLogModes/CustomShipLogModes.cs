@@ -18,7 +18,6 @@ public class CustomShipLogModes : ModBehaviour
     private Dictionary<ShipLogMode, Tuple<Func<bool>, Func<string>>> _modes = new();
 
     private ShipLogController _shipLogController;
-    private ShipLogMode _goBackMode;
     private ShipLogMode _requestedChaneMode;
 
     private ScreenPrompt _modeSelectorPrompt;
@@ -27,12 +26,15 @@ public class CustomShipLogModes : ModBehaviour
     private bool _AModeAvailable;
     private bool _BModeAvailable;
 
-    // TODO: Move Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/ScreenPromptListScaleRoot/ TO LAST CHILD
     private void Start()
     {
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
         Instance = this;
         LoadManager.OnStartSceneLoad += OnStartSceneLoad;
+    }
+
+    public override object GetApi() {
+        return new CustomShipLogModesAPI();
     }
 
     private void OnStartSceneLoad(OWScene originalScene, OWScene loadScene)
@@ -65,6 +67,7 @@ public class CustomShipLogModes : ModBehaviour
         GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
         GameObject selectorModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
         selectorModeGo.name = nameof(ModSelectorMode);
+        _shipLogController._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode selector!
         _modSelectorMode = selectorModeGo.AddComponent<ModSelectorMode>();
         InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
 
@@ -93,7 +96,8 @@ public class CustomShipLogModes : ModBehaviour
         _shipLogController._shipLogCanvas.gameObject.SetActive(canvasActive);
     }
 
-    private void AddMode(ShipLogMode mode, Func<bool> isEnabledSupplier, Func<string> nameSupplier)
+    // API method
+    public void AddMode(ShipLogMode mode, Func<bool> isEnabledSupplier, Func<string> nameSupplier)
     {
         if (_modes.ContainsKey(mode))
         {
@@ -101,22 +105,21 @@ public class CustomShipLogModes : ModBehaviour
         }
         _modes[mode] = new Tuple<Func<bool>, Func<string>>(isEnabledSupplier, nameSupplier);
 
-        if (IsVanillaMode(mode))
-        {
-            // Vanilla modes are already initialized in ShipLogController.LateInitialize
-            return;
-        }
         if (_shipLogController != null && !IsVanillaMode(mode))
         {
+            // Vanilla modes are already initialized in ShipLogController.LateInitialize
             InitializeMode(mode);
             return;
         }
         ModHelper.Console.WriteLine("Mode " + mode + " added but ShipLogController not initialized yet", MessageType.Info);
     }
 
-    private void RequestChangeMode(ShipLogMode mode)
+    public void RequestChangeMode(ShipLogMode mode)
     {
-        if (_requestedChaneMode != null)
+        // We don't want modes to directly change the mode because that could cause
+        // for example closing ana reopening the selector in the same frame because postfix
+        // TODO: Add this to API?
+        if (_requestedChaneMode == null)
         {
             _requestedChaneMode = mode;
         } 
@@ -155,6 +158,7 @@ public class CustomShipLogModes : ModBehaviour
         if (_requestedChaneMode != null)
         {
             ChangeMode(_requestedChaneMode);
+            _requestedChaneMode = null;
             return;
         }
         
@@ -172,7 +176,7 @@ public class CustomShipLogModes : ModBehaviour
                 ChangeMode(customModes[0]);
                 return;
             }
-            _goBackMode = currentMode;
+            _modSelectorMode.SetGoBackMode(currentMode);
             ChangeMode(_modSelectorMode);
             return;
         }
@@ -203,23 +207,6 @@ public class CustomShipLogModes : ModBehaviour
         {
             // Just in case someone disabled the current custom mode, trapping us there!
             ChangeMode(GetDefaultMode());
-            return;
-        } 
-
-        if (currentMode == _modSelectorMode)
-        {
-            if (Input.IsNewlyPressed(Input.Action.CloseModeSelector) && _goBackMode != null)
-            {
-                // Check null just in case this mode wasn't opened from the expected path
-                // I would like to move this to ModSelectorMode.UpdateMode, but UpdateMode is called before the postfix and could reopen the menu 
-                // TODO: Don't show the prompt in that case, also check if disabled
-                ChangeMode(_goBackMode); // It could be inactive but ok
-                return;
-            }
-            if (Input.IsNewlyPressed(Input.Action.SelectMode))
-            {
-                ChangeMode(_modSelectorMode.GetSelectedMode());
-            }
         }
     }
 

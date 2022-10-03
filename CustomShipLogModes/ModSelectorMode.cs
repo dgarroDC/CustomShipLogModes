@@ -11,9 +11,9 @@ namespace CustomShipLogModes;
 public class ModSelectorMode : ShipLogMode
 {
     // TODO: Translation
-    public static readonly string NAME = "Select Mode";
-   
-    private ScreenPromptList _upperRightPromptList; // TODO: Enter selected mode? (E?)
+    private const string Name = "Select Mode";
+
+    private ScreenPromptList _upperRightPromptList;
     private OWAudioSource _oneShotSource;
     private CanvasGroupAnimator _mapModeAnimator;
     private RectTransform _entryListRoot;
@@ -28,6 +28,8 @@ public class ModSelectorMode : ShipLogMode
     
     private string _prevEntryId;
     private List<Tuple<ShipLogMode,string>> _modes = new();
+    private ShipLogMode _goBackMode;
+
     public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
     {
         _upperRightPromptList = upperRightPromptList;
@@ -60,7 +62,7 @@ public class ModSelectorMode : ShipLogMode
         // Magic number to match the bottom line with the description field, idk how to properly calculate it
         entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594); 
 
-        gameObject.transform.Find("NamePanelRoot").Find("Name").GetComponent<Text>().text = NAME;
+        gameObject.transform.Find("NamePanelRoot").Find("Name").GetComponent<Text>().text = Name;
 
         // Init entry list
         _entryListRoot = entryListRoot.Find("EntryList").GetRequiredComponent<RectTransform>();
@@ -88,7 +90,16 @@ public class ModSelectorMode : ShipLogMode
 
     private void UpdatePromptsVisibility()
     {
-        _closePrompt.SetText("Go Back To " + CustomShipLogModes.Instance._goback);
+        // TODO: Translations
+        Tuple<ShipLogMode,string> goBackFind = _modes.Find(m => m.Item1== _goBackMode);
+        bool canGoBack = goBackFind != default;
+        _closePrompt.SetVisibility(canGoBack);
+        if (canGoBack)
+        {
+            _closePrompt.SetText("Go Back To " + goBackFind.Item2);
+        }
+        
+        _selectPrompt.SetVisibility(true); // This is always possible I guess?
         _selectPrompt.SetText("Select " + _modes[_entryIndex].Item2);
     }
 
@@ -98,14 +109,23 @@ public class ModSelectorMode : ShipLogMode
         _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
         _prevEntryId = entryID;
-
+        
         UpdateAvailableModes();
+        UpdatePromptsVisibility(); // Just in case?
         UpdateListItemVisuals(); // Do this because otherwise alphas are reset or something
+
+        PromptManager promptManager = Locator.GetPromptManager();
+        promptManager.AddScreenPrompt(_closePrompt, _upperRightPromptList, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_selectPrompt, _upperRightPromptList, TextAnchor.MiddleRight);
     }
 
     public override void ExitMode()
     {
         _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
+
+        PromptManager promptManager = Locator.GetPromptManager();
+        promptManager.RemoveScreenPrompt(_closePrompt);
+        promptManager.RemoveScreenPrompt(_selectPrompt);
     }
 
     public void AddEntry()
@@ -142,7 +162,6 @@ public class ModSelectorMode : ShipLogMode
 
         _entryIndex = index;
         UpdateListItemVisuals();
-        _oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries); // TODO: Avoid on first enter
     }
 
     private void UpdateListItemVisuals()
@@ -211,21 +230,37 @@ public class ModSelectorMode : ShipLogMode
 
     public override void UpdateMode()
     {
-        UpdatePromptsVisibility();
-        
         // Just in case a mode was disabled/added/renamed, do we really need to check this now?
-        if (UpdateAvailableModes())
+        UpdateAvailableModes();
+        
+        UpdatePromptsVisibility();
+        if (_closePrompt.IsVisible() && Input.IsNewlyPressed(Input.Action.CloseModeSelector))
         {
+            // Check null just in case this mode wasn't opened from the expected path
+            CustomShipLogModes.Instance.RequestChangeMode(_goBackMode); // It could be inactive but ok
             return;
         }
+        if (Input.IsNewlyPressed(Input.Action.SelectMode))
+        {
+            CustomShipLogModes.Instance.RequestChangeMode(_modes[_entryIndex].Item1);
+            return;
+        }
+        
         int selectionChange = _listNavigator.GetSelectionChange();
         if (selectionChange != 0)
         {
             SetEntryFocus(_entryIndex + selectionChange);
+            // Don't play sound in SetEntryFocus to avoid playing it in UpdateAvailableModes (particularly on first time of EnterMode)
+            _oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
         }
     }
 
-    private bool UpdateAvailableModes()
+    public void SetGoBackMode(ShipLogMode mode)
+    {
+        _goBackMode = mode;
+    }
+
+    private void UpdateAvailableModes()
     {
         List<Tuple<ShipLogMode, string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes();
         if (!modes.SequenceEqual(_modes))
@@ -250,15 +285,7 @@ public class ModSelectorMode : ShipLogMode
             }
             
             SetEntryFocus(0); // TODO: Try to select the previous selection?
-            return true;
         }
-
-        return false;
-    }
-
-    public ShipLogMode GetSelectedMode()
-    {
-        return _modes[_entryIndex].Item1;
     }
 
     public override string GetFocusedEntryID()
