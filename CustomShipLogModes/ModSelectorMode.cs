@@ -105,7 +105,7 @@ public class ModSelectorMode : ShipLogMode
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
-        // Yes, I'm using this sound for this, but it actually sound really good, don't judge me
+        // Yes, I'm using this sound for this, but it actually sounds similar to the vanilla modes enter sounds
         _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
         _prevEntryId = entryID;
@@ -234,7 +234,7 @@ public class ModSelectorMode : ShipLogMode
         UpdateAvailableModes();
         
         UpdatePromptsVisibility();
-        if (_closePrompt.IsVisible() && Input.IsNewlyPressed(Input.Action.CloseModeSelector))
+        if (_closePrompt._isVisible && Input.IsNewlyPressed(Input.Action.CloseModeSelector))
         {
             // Check null just in case this mode wasn't opened from the expected path
             CustomShipLogModes.Instance.RequestChangeMode(_goBackMode); // It could be inactive but ok

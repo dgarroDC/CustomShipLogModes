@@ -164,7 +164,7 @@ public class CustomShipLogModes : ModBehaviour
         List<ShipLogMode> customModes = GetCustomModes();
         bool isCustomMode = customModes.Contains(currentMode);
         
-        if (_modeSelectorPrompt.IsVisible() && Input.IsNewlyPressed(Input.Action.OpenModeSelector))
+        if (_modeSelectorPrompt._isVisible && Input.IsNewlyPressed(Input.Action.OpenModeSelector))
         {
             // We know AllowModeSwap is true (and other necessary conditions because of UpdatePromptsVisibility),
             // except in Map Mode case (see special case)
@@ -179,7 +179,7 @@ public class CustomShipLogModes : ModBehaviour
         }
         if (currentMode.AllowModeSwap() && Input.IsNewlyPressed(Input.Action.SwapMode))
         {
-            // Don't check _modeSwapPrompt.IsVisible (because of vanilla cases)
+            // Don't check _modeSwapPrompt._isVisible (because of vanilla cases)
             ShipLogMode mapMode = _shipLogController._mapMode;
             ShipLogMode detectiveMode = _shipLogController._detectiveMode;
             if (currentMode == mapMode)
