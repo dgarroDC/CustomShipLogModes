@@ -11,7 +11,7 @@ namespace CustomShipLogModes;
 public class ModSelectorMode : ShipLogMode
 {
     // TODO: Translation
-    private const string Name = "Select Mode";
+    public const string Name = "Select Mode";
 
     private ScreenPromptList _upperRightPromptList;
     private OWAudioSource _oneShotSource;
@@ -91,7 +91,7 @@ public class ModSelectorMode : ShipLogMode
     private void UpdatePromptsVisibility()
     {
         // TODO: Translations
-        Tuple<ShipLogMode,string> goBackFind = _modes.Find(m => m.Item1== _goBackMode);
+        Tuple<ShipLogMode,string> goBackFind = _modes.Find(m => m.Item1 == _goBackMode);
         bool canGoBack = goBackFind != default;
         _closePrompt.SetVisibility(canGoBack);
         if (canGoBack)

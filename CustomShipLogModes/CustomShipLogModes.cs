@@ -53,7 +53,7 @@ public class CustomShipLogModes : ModBehaviour
         }
         _shipLogController = FindObjectOfType<ShipLogController>();
 
-        // Initialize all already added modes, even disabled ones (document this)
+        // Initialize all already added modes, even disabled ones
         foreach (ShipLogMode mode in _modes.Keys)
         {
             if (mode != null)
@@ -70,10 +70,6 @@ public class CustomShipLogModes : ModBehaviour
         _modSelectorMode = selectorModeGo.AddComponent<ModSelectorMode>();
         InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
 
-        // Add vanilla modes
-        AddMode(shipLogController._detectiveMode, PlayerData.GetDetectiveModeEnabled, () => UITextLibrary.GetString(UITextType.LogRumorModePrompt));
-        AddMode(shipLogController._mapMode, () => true, () => UITextLibrary.GetString(UITextType.LogMapModePrompt));
-
         ShipLogMode a  = selectorModeGo.AddComponent<ModeA>();
         ShipLogMode b  = selectorModeGo.AddComponent<ModeB>();
         AddMode(b, () => _AModeAvailable, () => "Mode B");
@@ -82,9 +78,8 @@ public class CustomShipLogModes : ModBehaviour
 
     private void SetupPrompts()
     {
-        // The text is updated
-        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), "");
-        _modeSwapPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SwapMode), "");
+        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModSelectorMode.Name);
+        _modeSwapPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SwapMode), ""); // The text is updated
     }
 
     private void InitializeMode(ShipLogMode mode)
@@ -104,7 +99,7 @@ public class CustomShipLogModes : ModBehaviour
         }
         _modes[mode] = new Tuple<Func<bool>, Func<string>>(isEnabledSupplier, nameSupplier);
 
-        if (_shipLogController != null && !IsVanillaMode(mode))
+        if (_shipLogController != null)
         {
             // Vanilla modes are already initialized in ShipLogController.LateInitialize
             InitializeMode(mode);
@@ -137,17 +132,16 @@ public class CustomShipLogModes : ModBehaviour
         ShipLogMode currentMode = _shipLogController._currentMode;
         List<ShipLogMode> customModes = GetCustomModes();
         bool isCustomMode = customModes.Contains(currentMode);
+        List<Tuple<ShipLogMode,string>> availableNamedModes = GetAvailableNamedModes();
 
         // TODO: weird position (Back to Map Mode -> Select Mode)
         // If Map Mode doesn't allow swap because no Rumor Mode is disabled, we still want to be able to open custom modes...
         bool swapAllowed = currentMode.AllowModeSwap() || currentMode == _shipLogController._mapMode;
-        bool enoughModes = (IsVanillaMode(currentMode) && customModes.Count >= 1) 
-                           || (isCustomMode && customModes.Count >= 2);
+        bool enoughModes = customModes.Count >= 1;
         _modeSelectorPrompt.SetVisibility(swapAllowed && enoughModes);
-        _modeSelectorPrompt.SetText(customModes.Count == 1? GetModeName(customModes[0]) : "Select Mode");
 
         _modeSwapPrompt.SetVisibility(isCustomMode && currentMode.AllowModeSwap()); // Vanilla modes add their own prompts
-        _modeSwapPrompt.SetText(_modes[GetDefaultMode()].Item2.Invoke());
+        _modeSwapPrompt.SetText(availableNamedModes.Find(m => m.Item1 == GetDefaultMode()).Item2);
     }
 
     internal void UpdateChangeMode()
@@ -168,11 +162,6 @@ public class CustomShipLogModes : ModBehaviour
         {
             // We know AllowModeSwap is true (and other necessary conditions because of UpdatePromptsVisibility),
             // except in Map Mode case (see special case)
-            if (customModes.Count == 1)
-            {
-                ChangeMode(customModes[0]);
-                return;
-            }
             _modSelectorMode.SetGoBackMode(currentMode);
             ChangeMode(_modSelectorMode);
             return;
@@ -200,7 +189,7 @@ public class CustomShipLogModes : ModBehaviour
             }
         }
 
-        if (!IsVanillaMode(currentMode) && _modes.ContainsKey(currentMode) && !customModes.Contains(currentMode))
+        if (_modes.ContainsKey(currentMode) && !customModes.Contains(currentMode))
         {
             // Just in case someone disabled the current custom mode, trapping us there!
             ChangeMode(GetDefaultMode());
@@ -233,31 +222,40 @@ public class CustomShipLogModes : ModBehaviour
 
     private bool IsVanillaMode(ShipLogMode mode)
     {
+        // TODO: Remove?
         return mode == _shipLogController._mapMode || mode == _shipLogController._detectiveMode;
     }
     
     public List<Tuple<ShipLogMode, string>> GetAvailableNamedModes()
     {
         // TODO: Cache per update?
-        List<Tuple<ShipLogMode, string>> modes = new();
-        foreach (var (mode, tuple) in _modes)
-        {
-            if (mode != null && tuple.Item1.Invoke())
-            {
-                modes.Add(new Tuple<ShipLogMode, string>(mode, tuple.Item2.Invoke()));
-            }
-        }
-
-        return modes
-            .OrderBy(mode => IsVanillaMode(mode.Item1))
-            .ThenBy(mode => mode.Item2)
+        List<Tuple<ShipLogMode, string>> modes = GetCustomModes()
+            .Select(mode => new Tuple<ShipLogMode, string>(mode, _modes[mode].Item2.Invoke()))
+            .OrderBy(mode => mode.Item2)
             .ToList();
+
+        // Add vanilla modes
+        if (PlayerData.GetDetectiveModeEnabled())
+        {
+            modes.Add(new Tuple<ShipLogMode, string>(_shipLogController._detectiveMode, UITextLibrary.GetString(UITextType.LogRumorModePrompt)));
+        }
+        modes.Add(new Tuple<ShipLogMode, string>(_shipLogController._mapMode, UITextLibrary.GetString(UITextType.LogMapModePrompt)));
+
+        return modes;
     }
 
     private List<ShipLogMode> GetCustomModes()
     {
         // TODO: Cache per update?
-        return GetAvailableNamedModes().Select(t => t.Item1).Where(mode => !IsVanillaMode(mode)).ToList();
+        List<ShipLogMode> customModes = new List<ShipLogMode>();
+        foreach (var (mode, tuple) in _modes)
+        {
+            if (mode != null && tuple.Item1.Invoke())
+            {
+                customModes.Add(mode);
+            }
+        }
+        return customModes;
     }
 
     private string GetModeName(ShipLogMode mode)
@@ -269,8 +267,8 @@ public class CustomShipLogModes : ModBehaviour
     {
         // TODO: Review no detective enabled, it always defaults to map mode instead of last mode, probably nobody cares
         PromptManager promptManager = Locator.GetPromptManager();
-        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
         promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
         foreach (ShipLogMode mode in GetCustomModes())
         {
             mode.OnEnterComputer();
