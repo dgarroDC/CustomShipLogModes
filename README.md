@@ -2,7 +2,7 @@
 
 ![thumbnail](images/thumbnail.webp)
 
-This utility mod allow other mods to add their custom Ship Log modes. Now you can [kill demons](https://outerwildsmods.com/mods/doom/), [visit other stars](https://outerwildsmods.com/mods/newhorizons/) or even view your gallery of photos (*coming soon?*) in your computer without worrying about compatibility issues!
+This utility mod allows other mods to add their custom Ship Log modes. Now you can [kill demons](https://outerwildsmods.com/mods/doom/), [visit other stars](https://outerwildsmods.com/mods/newhorizons/) or even view your gallery of photos (*coming soon?*) in your computer without worrying about compatibility issues!
 
 The mods adds a prompt to open a menu to select all the custom and vanilla modes (sorted alphabetically but with the custom modes on top) using the flashlight key (**F key** by default in keyboard):
 
@@ -30,7 +30,7 @@ var customModesAPI = ModHelper.Interaction.TryGetModApi<ICustomShipLogModesAPI>(
 customModesAPI.AddMode(doomMode, () => true, () => "DOOM");
 ```
 
-You pass your mode itself with the `mode` parameter. Wth the `isEnabledSupplier` parameter you indicate if the mode is enabled (meaning that the mode is selectable) and with `nameSupplier` the name of the mode (using in prompts and the mode selector menu). You can enable/disable the mode or change its name on the fly with these suppliers, so there's no need to call again `AddMode` for that, for example:
+You pass your mode itself with the `mode` parameter. With the `isEnabledSupplier` parameter you indicate if the mode is enabled (meaning that the mode is selectable) and with `nameSupplier` the name of the mode (using in prompts and the mode selector menu). You can enable/disable the mode or change its name on the fly with these suppliers, so there's no need to call again `AddMode` for that, for example:
 
 ```csharp
 // Add the mode but it is disabled for now
@@ -74,7 +74,7 @@ This is called when exiting your mode (to exit the computer or change to other m
 This is called on all modes when the player enters the computer. Here you can do for example some initialization of stuff that could only changed between computer sessions, but you could probably ignore this method and leave it empty.
 
 ---
-`public void OnExitComputer();`
+`public void OnExitComputer()`
 
 This is called on all modes when the player exits the computer. If your mode was the selected mode, this method is called after `ExitMode` was called, so you don't have to worry to hide elements in that case. Again, you may just ignore this method.
 

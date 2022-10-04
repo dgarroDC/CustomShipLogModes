@@ -9,7 +9,6 @@ using UnityEngine;
 
 namespace CustomShipLogModes;
 
-[HarmonyPatch]
 public class CustomShipLogModes : ModBehaviour
 {
     public static CustomShipLogModes Instance;
