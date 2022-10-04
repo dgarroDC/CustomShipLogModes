@@ -15,7 +15,10 @@ public class CustomShipLogModes : ModBehaviour
 
     private ModSelectorMode _modSelectorMode;
     private Dictionary<ShipLogMode, Tuple<Func<bool>, Func<string>>> _modes = new();
-
+   
+    private bool _cycleModes;
+    private ShipLogMode _nextMode; // TODO: Move to variable?
+    
     private ShipLogController _shipLogController;
     private ShipLogMode _requestedChaneMode;
 
@@ -34,6 +37,9 @@ public class CustomShipLogModes : ModBehaviour
 
     public override object GetApi() {
         return new CustomShipLogModesAPI();
+    }
+    public override void Configure(IModConfig config) {
+        _cycleModes = config.GetSettingsValue<bool>("Cycle through modes");
     }
 
     private void OnStartSceneLoad(OWScene originalScene, OWScene loadScene)
@@ -140,8 +146,76 @@ public class CustomShipLogModes : ModBehaviour
         bool enoughModes = customModes.Count >= 1;
         _modeSelectorPrompt.SetVisibility(swapAllowed && enoughModes);
 
-        _modeSwapPrompt.SetVisibility(isCustomMode && currentMode.AllowModeSwap()); // Vanilla modes add their own prompts
-        _modeSwapPrompt.SetText(availableNamedModes.Find(m => m.Item1 == GetDefaultMode()).Item2);
+        ScreenPrompt swapPrompt = null;
+        if (currentMode == _shipLogController._mapMode)
+        {
+            // We know UpdateMode already happened so no need to worry about Map Mode hiding the prompt 
+            swapPrompt = (currentMode as ShipLogMapMode)._detectiveModePrompt;
+        }
+        else if (currentMode == _shipLogController._detectiveMode)
+        {
+            swapPrompt = (currentMode as ShipLogDetectiveMode)._mapModePrompt;
+        }
+        else if (isCustomMode)
+        {
+            swapPrompt = _modeSwapPrompt;
+        }
+        if (!isCustomMode)
+        {
+            _modeSwapPrompt.SetVisibility(false);
+        }
+
+        _nextMode = null;
+        int currentModeIndex = availableNamedModes.FindIndex(m => m.Item1 == currentMode);
+        if (swapAllowed && currentModeIndex >= 0)
+        {
+            if (!isCustomMode && currentMode.GetFocusedEntryID().Length > 0)
+            {
+                // Always swap between vanilla modes if an entry is selected and use the prompt visibility and text they set
+                _nextMode = SwapVanillaMode(currentMode);
+                if (_nextMode != null)
+                {
+                    return;
+                }
+            }
+            
+            if (_cycleModes)
+            {
+                if (availableNamedModes.Count >= 2)
+                {
+                    _nextMode = availableNamedModes[(currentModeIndex + 1) % availableNamedModes.Count].Item1;
+                }
+            }
+            else
+            {
+                _nextMode = isCustomMode ? GetDefaultMode() : SwapVanillaMode(currentMode);
+            }
+        }
+
+        if (swapPrompt != null)
+        {
+            swapPrompt.SetVisibility(_nextMode != null);
+            if (_nextMode != null)
+            {
+                string nextModeName = availableNamedModes.Find(m => m.Item1 == _nextMode).Item2;
+                swapPrompt.SetText(nextModeName);
+            }
+        }
+    }
+
+    private ShipLogMode SwapVanillaMode(ShipLogMode currentMode)
+    {
+        if (currentMode == _shipLogController._detectiveMode)
+        {
+            return _shipLogController._mapMode;
+        }
+
+        if (PlayerData.GetDetectiveModeEnabled())
+        {
+            return _shipLogController._detectiveMode;
+        }
+
+        return null;
     }
 
     internal void UpdateChangeMode()
@@ -153,11 +227,7 @@ public class CustomShipLogModes : ModBehaviour
             return;
         }
         
-        // TODO: Use same for UpdatePromptsVisibility and UpdateChangeMode?
         ShipLogMode currentMode = _shipLogController._currentMode;
-        List<ShipLogMode> customModes = GetCustomModes();
-        bool isCustomMode = customModes.Contains(currentMode);
-        
         if (_modeSelectorPrompt._isVisible && Input.IsNewlyPressed(Input.Action.OpenModeSelector))
         {
             // We know AllowModeSwap is true (and other necessary conditions because of UpdatePromptsVisibility),
@@ -166,30 +236,14 @@ public class CustomShipLogModes : ModBehaviour
             ChangeMode(_modSelectorMode);
             return;
         }
-        if (currentMode.AllowModeSwap() && Input.IsNewlyPressed(Input.Action.SwapMode))
+        if (_nextMode != null && Input.IsNewlyPressed(Input.Action.SwapMode))
         {
             // Don't check _modeSwapPrompt._isVisible (because of vanilla cases)
-            ShipLogMode mapMode = _shipLogController._mapMode;
-            ShipLogMode detectiveMode = _shipLogController._detectiveMode;
-            if (currentMode == mapMode)
-            {
-                // We know detective mode is enabled because AllowModeSwap
-                ChangeMode(detectiveMode);
-                return;
-            }
-            if (currentMode == detectiveMode)
-            {
-                ChangeMode(mapMode);
-                return;
-            }
-            if (isCustomMode)
-            {
-                ChangeMode(GetDefaultMode());
-                return;   
-            }
+            ChangeMode(_nextMode);
+            return;   
         }
 
-        if (_modes.ContainsKey(currentMode) && !customModes.Contains(currentMode))
+        if (_modes.ContainsKey(currentMode) && !_modes[currentMode].Item1.Invoke())
         {
             // Just in case someone disabled the current custom mode, trapping us there!
             ChangeMode(GetDefaultMode());
@@ -220,12 +274,6 @@ public class CustomShipLogModes : ModBehaviour
         }
     }
 
-    private bool IsVanillaMode(ShipLogMode mode)
-    {
-        // TODO: Remove?
-        return mode == _shipLogController._mapMode || mode == _shipLogController._detectiveMode;
-    }
-    
     public List<Tuple<ShipLogMode, string>> GetAvailableNamedModes()
     {
         // TODO: Cache per update?
@@ -256,11 +304,6 @@ public class CustomShipLogModes : ModBehaviour
             }
         }
         return customModes;
-    }
-
-    private string GetModeName(ShipLogMode mode)
-    {
-        return _modes[mode].Item2.Invoke();
     }
 
     public void OnEnterShipComputer()
