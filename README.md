@@ -4,13 +4,15 @@
 
 This utility mod allows other mods to add their custom Ship Log modes. Now you can [kill demons](https://outerwildsmods.com/mods/doom/), [visit other stars](https://outerwildsmods.com/mods/newhorizons/) or even view your gallery of photos (*coming soon?*) in your computer without worrying about compatibility issues!
 
-The mods adds a prompt to open a menu to select all the custom and vanilla modes (sorted alphabetically but with the custom modes on top) using the flashlight key (**F key** by default in keyboard):
+The mod adds a prompt to open a menu to select all the custom and vanilla modes (custom modes are at the top and the vanilla modes are in the bottom) using the flashlight key (**F key** by default in keyboard):
 
 ![menu example](images/menu-example.webp)
 
-If only one custom mode exists, the menu is disabled and pressing the key changes the mode directly to the only custom mode, and in that case the prompt is disabled in that mode (it is shown only in vanilla modes), although custom modes always have a prompt to go the the default vanilla mode (Rumor Mode or Map Mode if the first is disabled) using the secondary interact key (**C key** by default in keyboard):
+You can also cycle through the modes using the secondary interact key (**C key** by default in keyboard):
 
-![no menu example](images/no-menu-example.webp)
+![cycle example](images/cycle-example.webp)
+
+**Note:** If you prefer the Outer Wilds behavior of the secondary interact key, you can disable the *"Cycle through modes"* option in the settings: Pressing the key in the Map Mode would switch to Rumor Mode and vice versa. In the case of a custom mode, pressing the key would change the mode to the default one (Rumor Mode of Map Mode if the former is disabled).  
 
 ## How to add modes in your mod
 
