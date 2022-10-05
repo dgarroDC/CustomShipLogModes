@@ -1,6 +1,6 @@
 # Custom Ship Log Modes by Damián Garro
 
-![thumbnail](images/thumbnail.webp)
+![thumbnail](images/thumbnail.png)
 
 This utility mod allows other mods to add their custom Ship Log modes. Now you can [kill demons](https://outerwildsmods.com/mods/doom/), [visit other stars](https://outerwildsmods.com/mods/newhorizons/) or even view your gallery of photos (*coming soon?*) on your computer without worrying about compatibility issues!
 
