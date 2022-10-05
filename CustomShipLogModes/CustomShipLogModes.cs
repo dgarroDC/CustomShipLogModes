@@ -25,9 +25,6 @@ public class CustomShipLogModes : ModBehaviour
     private ScreenPrompt _modeSelectorPrompt;
     private ScreenPrompt _modeSwapPrompt;
 
-    private bool _AModeAvailable;
-    private bool _BModeAvailable;
-
     private void Start()
     {
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
@@ -75,11 +72,6 @@ public class CustomShipLogModes : ModBehaviour
         _shipLogController._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode selector!
         _modSelectorMode = selectorModeGo.AddComponent<ModSelectorMode>();
         InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
-
-        ShipLogMode a  = selectorModeGo.AddComponent<ModeA>();
-        ShipLogMode b  = selectorModeGo.AddComponent<ModeB>();
-        AddMode(b, () => _AModeAvailable, () => "Mode B");
-        AddMode(a, () => _BModeAvailable, () => "Mode A");
     }
 
     private void SetupPrompts()
@@ -125,16 +117,6 @@ public class CustomShipLogModes : ModBehaviour
 
     public void UpdatePromptsVisibility()
     {
-        if (OWInput.IsNewlyPressed(InputLibrary.autopilot))
-        {
-            _AModeAvailable = !_AModeAvailable;
-        }
-        if (OWInput.IsNewlyPressed(InputLibrary.markEntryOnHUD))
-        {
-            _BModeAvailable = !_BModeAvailable;
-        }
-        
-        
         ShipLogMode currentMode = _shipLogController._currentMode;
         List<ShipLogMode> customModes = GetCustomModes();
         bool isCustomMode = customModes.Contains(currentMode);
