@@ -27,7 +27,7 @@ public static class Input
             case Action.OpenModeSelector:
                 return new List<IInputCommands>{InputLibrary.flashlight};
             case Action.CloseModeSelector:
-                return new List<IInputCommands>{InputLibrary.cancel, InputLibrary.flashlight};
+                return new List<IInputCommands>{InputLibrary.cancel};
             case Action.SwapMode:
                 return new List<IInputCommands>{InputLibrary.swapShipLogMode};
             case Action.SelectMode:
