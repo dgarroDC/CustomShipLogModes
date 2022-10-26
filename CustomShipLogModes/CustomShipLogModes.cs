@@ -66,11 +66,7 @@ public class CustomShipLogModes : ModBehaviour
         }
         
         // Create mod selector mode
-        GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
-        GameObject selectorModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
-        selectorModeGo.name = nameof(ModSelectorMode);
-        _shipLogController._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode selector!
-        _modSelectorMode = selectorModeGo.AddComponent<ModSelectorMode>();
+        _modSelectorMode = ModSelectorMode.Make<ModSelectorMode>();
         InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
     }
 
@@ -108,7 +104,7 @@ public class CustomShipLogModes : ModBehaviour
     {
         // We don't want modes to directly change the mode because that could cause
         // for example closing ana reopening the selector in the same frame because postfix
-        // TODO: Add this to API?
+        // TODO: Add this to API? Check is the current mode?
         if (_requestedChaneMode == null)
         {
             _requestedChaneMode = mode;
