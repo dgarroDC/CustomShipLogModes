@@ -42,11 +42,15 @@ public class Patches
     
     [HarmonyPostfix]
     [HarmonyPatch(typeof(ShipLogController), nameof(ShipLogController.Update))]
-    private static void ShipLogController_Update()
+    private static void ShipLogController_Update(ShipLogController __instance)
     {
-        // We know _initialized is true and so the mod was initialized 
-        CustomShipLogModes.Instance.UpdatePromptsVisibility();
-        CustomShipLogModes.Instance.UpdateChangeMode();
+        // We don't want to allow changing mode when the computer is exiting
+        if (__instance._usingShipLog)
+        {
+            // We know _initialized is true and so the mod was initialized 
+            CustomShipLogModes.Instance.UpdatePromptsVisibility();
+            CustomShipLogModes.Instance.UpdateChangeMode(); 
+        }
     }
     
     [HarmonyPostfix]
