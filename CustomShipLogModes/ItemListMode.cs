@@ -21,13 +21,14 @@ public abstract class ItemListMode : ShipLogMode
     private List<ShipLogEntryListItem> _listItems;
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
+    private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
 
     public static T Make<T>() where T : ItemListMode
     {
         GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
         GameObject itemListModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
         T itemListMode = itemListModeGo.AddComponent<T>();
-        itemListModeGo.name = nameof(T);
+        itemListModeGo.name = typeof(T).Name;
         return itemListMode;
     }
 
@@ -40,6 +41,7 @@ public abstract class ItemListMode : ShipLogMode
     protected virtual void OnEntrySelected()
     {
         // No-op
+        // TODO: On enter? Index starting in -1?
     }
 
     public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
@@ -53,7 +55,7 @@ public abstract class ItemListMode : ShipLogMode
         // Modify map mode clone
         Destroy(gameObject.transform.Find("ScaleRoot").gameObject);
         Destroy(gameObject.transform.Find("ReticleImage").gameObject);
-        gameObject.DestroyAllComponents<ShipLogMapMode>();
+        _fontAndLanguageController = gameObject.GetComponent<ShipLogMapMode>()._fontAndLanguageController;
 
         RectTransform entryMenu = gameObject.transform.Find("EntryMenu").GetRequiredComponent<RectTransform>();
         // Init animations
@@ -79,7 +81,6 @@ public abstract class ItemListMode : ShipLogMode
         // Init entry list
         _entryListRoot = entryListRoot.Find("EntryList").GetRequiredComponent<RectTransform>();
         _origEntryListPos = _entryListRoot.anchoredPosition;
-        // TODO: Mimic delay (????)
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>();
         int keepEntries = 1;
         for (int i = keepEntries; i < oldListItems.Length; i++)
@@ -87,7 +88,6 @@ public abstract class ItemListMode : ShipLogMode
             Destroy(oldListItems[i].gameObject);
         }
         _listItems = new List<ShipLogEntryListItem>();
-        // We now Init called in this one and so all copies will be TODO: Review in TextListMode?
         SetupAndAddItem(oldListItems[0]);
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
         _listNavigator = new ListNavigator();
@@ -115,6 +115,7 @@ public abstract class ItemListMode : ShipLogMode
         SetupAndAddItem(item);
     }
 
+    // TODO: PROTECTED?
     private void SetEntryFocus(int index)
     {
         if (index == -1)
@@ -126,9 +127,11 @@ public abstract class ItemListMode : ShipLogMode
             index = 0;
         }
 
+        // TODO Check index != current one
         int topIndex = Mathf.Max(0, index - 4);
         if (topIndex == 0)
         {
+            // TODO: Remove this case, just create some items on setup..
             _entryListRoot.anchoredPosition = _origEntryListPos;
         }
         else
@@ -195,11 +198,15 @@ public abstract class ItemListMode : ShipLogMode
     
     private void SetupAndAddItem(ShipLogEntryListItem item)
     {
-        item._unreadIcon.gameObject.SetActive(false);
+        item.Init(_fontAndLanguageController);
+        item._animAlpha = 1f;
+        item._hasFocus = false; // _hasFocus and _focusAlpha are probably unnecessary because SetListAlpha, but Setup does it, so just in case... 
+        item._focusAlpha = 0.2f;
+        item._unreadIcon.gameObject.SetActive(false); // Icons also unnecessary? (virtual methods) TODO
         item._hudMarkerIcon.gameObject.SetActive(false);
         item._moreToExploreIcon.gameObject.SetActive(false);
-        // This is probably false already, we don't want to call Update() (no animation or entry)
         item.enabled = false;
+        // TODO: Add option to AnimateTo? _entry required in Update()!!
         _listItems.Add(item);
     }
 
