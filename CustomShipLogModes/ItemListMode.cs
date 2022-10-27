@@ -5,23 +5,24 @@ using UnityEngine.UI;
 namespace CustomShipLogModes;
 
 // Heavily based on ShipLogMapMode
-public abstract class ItemListMode<TU> : ShipLogMode
+// TODO: count == 0?
+public abstract class ItemListMode : ShipLogMode
 {
     protected ScreenPromptList CenterPromptList;
     protected ScreenPromptList UpperRightPromptList;
     protected OWAudioSource OneShotSource;
 
-    protected List<TU> Items = new();
     protected int SelectedIndex;
 
     private CanvasGroupAnimator _mapModeAnimator;
     private RectTransform _entryListRoot;
     private Vector2 _origEntryListPos;
+    private int _itemCount;
     private List<ShipLogEntryListItem> _listItems;
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
 
-    public static T Make<T>() where T : ItemListMode<TU>
+    public static T Make<T>() where T : ItemListMode
     {
         GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
         GameObject itemListModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
@@ -30,9 +31,9 @@ public abstract class ItemListMode<TU> : ShipLogMode
         return itemListMode;
     }
 
-    protected abstract string GetModeName();
+    public abstract string GetModeName();
 
-    protected abstract bool UpdateAvailableItems();
+    protected abstract int UpdateAvailableItems();
 
     protected abstract string GetItemName(int i);
 
@@ -118,9 +119,9 @@ public abstract class ItemListMode<TU> : ShipLogMode
     {
         if (index == -1)
         {
-            index = Items.Count - 1; // Important to use the item list here, not the entry list!!!
+            index = _itemCount - 1; // Important to use the item list here, not the entry list!!!
         }
-        else if (index == Items.Count)
+        else if (index == _itemCount)
         {
             index = 0;
         }
@@ -228,28 +229,28 @@ public abstract class ItemListMode<TU> : ShipLogMode
 
     private void CheckAvailableItems()
     {
-        if (UpdateAvailableItems())
+        int itemCount = UpdateAvailableItems();
+        if (itemCount == -1) return; // Items not updated
+        _itemCount = itemCount;
+        while (_listItems.Count < itemCount)
         {
-            while (_listItems.Count < Items.Count)
-            {
-                AddEntry();
-            }
-            for (var i = 0; i < _listItems.Count; i++)
-            {
-                ShipLogEntryListItem item = _listItems[i];
-                if (i < Items.Count)
-                {
-                    item.gameObject.SetActive(true);
-                    item._nameField.text = GetItemName(i);
-                }
-                else
-                {
-                    item.gameObject.SetActive(false);
-                }
-            }
-            
-            SetEntryFocus(0); // TODO: Try to select the previous selection?
+            AddEntry();
         }
+        for (var i = 0; i < _listItems.Count; i++)
+        {
+            ShipLogEntryListItem item = _listItems[i];
+            if (i < itemCount)
+            {
+                item.gameObject.SetActive(true);
+                item._nameField.text = GetItemName(i);
+            }
+            else
+            {
+                item.gameObject.SetActive(false);
+            }
+        }
+
+        SetEntryFocus(0); // TODO: Try to select the previous selection?
     }
 
     public override string GetFocusedEntryID()

@@ -6,36 +6,39 @@ using UnityEngine;
 namespace CustomShipLogModes;
 
 // TODO: Mode, not Mod
-public class ModSelectorMode : ItemListMode<Tuple<ShipLogMode,string>>
+public class ModSelectorMode : ItemListMode
 {
     // TODO: Translation
     public const string Name = "Select Mode";
 
+    protected List<Tuple<ShipLogMode,string>> _modes = new();
+    
     private ScreenPrompt _closePrompt;
     private ScreenPrompt _selectPrompt;
     
     private string _prevEntryId;
     private ShipLogMode _goBackMode;
 
-    protected override string GetModeName()
+    public override string GetModeName()
     {
         return Name;
     }
 
-    protected override bool UpdateAvailableItems()
+    protected override int UpdateAvailableItems()
     {
         List<Tuple<ShipLogMode,string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes();
-        if (!modes.SequenceEqual(Items))
+        if (!modes.SequenceEqual(_modes))
         {
-            Items = modes;
-            return true;
+            _modes = modes;
+            return _modes.Count;
         }
-        return false;
+
+        return -1;
     }
 
     protected override string GetItemName(int i)
     {
-        return Items[i].Item2;
+        return _modes[i].Item2;
     }
 
     public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
@@ -55,7 +58,7 @@ public class ModSelectorMode : ItemListMode<Tuple<ShipLogMode,string>>
     private void UpdatePromptsVisibility()
     {
         // TODO: Translations
-        int goBackFind = Items.FindIndex(m => m.Item1 == _goBackMode);
+        int goBackFind = _modes.FindIndex(m => m.Item1 == _goBackMode);
         bool canGoBack = goBackFind != -1;
         _closePrompt.SetVisibility(canGoBack);
         if (canGoBack)
@@ -74,7 +77,7 @@ public class ModSelectorMode : ItemListMode<Tuple<ShipLogMode,string>>
         // Yes, I'm using this sound for this, but it actually sounds similar to the vanilla modes enter sounds
         OneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
         _prevEntryId = entryID;
-        
+
         UpdatePromptsVisibility(); // Just in case?
 
         PromptManager promptManager = Locator.GetPromptManager();
@@ -94,7 +97,7 @@ public class ModSelectorMode : ItemListMode<Tuple<ShipLogMode,string>>
     public override void UpdateMode()
     {
         base.UpdateMode();
-        
+
         UpdatePromptsVisibility();
         if (_closePrompt._isVisible && Input.IsNewlyPressed(Input.Action.CloseModeSelector))
         {
@@ -103,7 +106,7 @@ public class ModSelectorMode : ItemListMode<Tuple<ShipLogMode,string>>
         }
         if (Input.IsNewlyPressed(Input.Action.SelectMode))
         {
-            CustomShipLogModes.Instance.RequestChangeMode(Items[SelectedIndex].Item1);
+            CustomShipLogModes.Instance.RequestChangeMode(_modes[SelectedIndex].Item1);
         }
     }
 

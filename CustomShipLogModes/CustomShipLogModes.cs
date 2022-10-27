@@ -66,7 +66,7 @@ public class CustomShipLogModes : ModBehaviour
         }
         
         // Create mod selector mode
-        _modSelectorMode = ModSelectorMode.Make<ModSelectorMode>();
+        _modSelectorMode = ItemListMode.Make<ModSelectorMode>();
         InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
     }
 
