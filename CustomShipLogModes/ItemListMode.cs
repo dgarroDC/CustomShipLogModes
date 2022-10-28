@@ -5,7 +5,6 @@ using UnityEngine.UI;
 namespace CustomShipLogModes;
 
 // Heavily based on ShipLogMapMode
-// TODO: count == 0?
 public abstract class ItemListMode : ShipLogMode
 {
     protected ScreenPromptList CenterPromptList;
@@ -18,7 +17,7 @@ public abstract class ItemListMode : ShipLogMode
     private CanvasGroupAnimator _mapModeAnimator;
     private RectTransform _entryListRoot;
     private Vector2 _origEntryListPos;
-    private int _itemCount;
+    private int _itemCount = -1;
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
@@ -34,7 +33,7 @@ public abstract class ItemListMode : ShipLogMode
 
     public abstract string GetModeName();
 
-    protected virtual void OnEntrySelected()
+    protected virtual void OnItemSelected()
     {
         // No-op
         // TODO: On enter? Index starting in -1?
@@ -88,6 +87,9 @@ public abstract class ItemListMode : ShipLogMode
         SetupAndAddItem(oldListItems[0]);
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
         _listNavigator = new ListNavigator();
+
+        _itemCount = -1; // To force changing UI stuff
+        UpdateItemCount(0); // We need in case there aren't items yet (EnterMode in subclass won't add them), hide template entry and arrow
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
@@ -109,7 +111,6 @@ public abstract class ItemListMode : ShipLogMode
         SetupAndAddItem(item);
     }
 
-    // TODO: PROTECTED?
     protected void SetEntryFocus(int index)
     {
         if (index == -1)
@@ -121,7 +122,6 @@ public abstract class ItemListMode : ShipLogMode
             index = 0;
         }
 
-        // TODO Check index != current one?
         int topIndex = Mathf.Max(0, index - 4);
         if (topIndex == 0)
         {
@@ -143,7 +143,7 @@ public abstract class ItemListMode : ShipLogMode
         SelectedIndex = index;
         UpdateListItemAlphas();
 
-        OnEntrySelected();
+        OnItemSelected();
     }
 
     private void UpdateListItemAlphas()
@@ -201,7 +201,8 @@ public abstract class ItemListMode : ShipLogMode
     {
         item.Init(_fontAndLanguageController);
         item._animAlpha = 1f;
-        item._focusAlpha = 0.2f; // probably unnecessary because SetFocus, but Setup does it, so just in case... 
+        item._focusAlpha = 0.2f; // probably unnecessary because SetFocus, but Setup does it, so just in case...
+        item._nameField.text = "If you're reading this, this is a bug, please report it!";
         item._unreadIcon.gameObject.SetActive(false); // Icons also unnecessary? (virtual methods) TODO
         item._hudMarkerIcon.gameObject.SetActive(false);
         item._moreToExploreIcon.gameObject.SetActive(false);
@@ -222,6 +223,7 @@ public abstract class ItemListMode : ShipLogMode
 
     public override void UpdateMode()
     {
+        if (_itemCount < 2) return;
         int selectionChange = _listNavigator.GetSelectionChange();
         if (selectionChange != 0)
         {
@@ -231,7 +233,6 @@ public abstract class ItemListMode : ShipLogMode
         }
     }
 
-    // TODO: protected? Maybe we want to check... Or readd Items with a setter... rethink this...
     protected void UpdateItemCount(int itemCount)
     {
         if (itemCount == _itemCount) return;
@@ -252,11 +253,12 @@ public abstract class ItemListMode : ShipLogMode
                 item.gameObject.SetActive(false);
             }
         }
+        
+        _entrySelectArrow.gameObject.SetActive(itemCount > 0);
 
-        if (SelectedIndex >= itemCount)
+        if (SelectedIndex >= itemCount && itemCount > 0)
         { 
             // TODO: Try to select the previous selection?
-            // TODO: Handle count 0 case?
             SetEntryFocus(_itemCount - 1);
         }
         else
