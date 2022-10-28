@@ -24,19 +24,21 @@ public class ModSelectorMode : ItemListMode
         return Name;
     }
 
-    protected override int UpdateAvailableItems()
+    private void UpdateAvailableModes()
     {
         List<Tuple<ShipLogMode,string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes();
         if (!modes.SequenceEqual(_modes))
         {
             _modes = modes;
-            return _modes.Count;
+            UpdateItemCount(_modes.Count);
+            for (var i = 0; i < _modes.Count; i++)
+            {
+                ListItems[i]._nameField.text = _modes[i].Item2;
+            }
         }
-
-        return -1;
     }
 
-    protected override string GetItemName(int i)
+    private string GetModeName(int i)
     {
         return _modes[i].Item2;
     }
@@ -63,11 +65,11 @@ public class ModSelectorMode : ItemListMode
         _closePrompt.SetVisibility(canGoBack);
         if (canGoBack)
         {
-            _closePrompt.SetText("Go Back To " + GetItemName(goBackFind));
+            _closePrompt.SetText("Go Back To " + GetModeName(goBackFind));
         }
-        
+
         _selectPrompt.SetVisibility(true); // This is always possible I guess?
-        _selectPrompt.SetText("Select " + GetItemName(SelectedIndex));
+        _selectPrompt.SetText("Select " + GetModeName(SelectedIndex));
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
@@ -77,6 +79,8 @@ public class ModSelectorMode : ItemListMode
         // Yes, I'm using this sound for this, but it actually sounds similar to the vanilla modes enter sounds
         OneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
         _prevEntryId = entryID;
+
+        UpdateAvailableModes();
 
         UpdatePromptsVisibility(); // Just in case?
 
@@ -97,6 +101,9 @@ public class ModSelectorMode : ItemListMode
     public override void UpdateMode()
     {
         base.UpdateMode();
+        
+        // Just in case a mode was disabled/added/renamed, do we really need to check this now?
+        UpdateAvailableModes();
 
         UpdatePromptsVisibility();
         if (_closePrompt._isVisible && Input.IsNewlyPressed(Input.Action.CloseModeSelector))

@@ -13,12 +13,12 @@ public abstract class ItemListMode : ShipLogMode
     protected OWAudioSource OneShotSource;
 
     protected int SelectedIndex;
+    protected List<ShipLogEntryListItem> ListItems;
 
     private CanvasGroupAnimator _mapModeAnimator;
     private RectTransform _entryListRoot;
     private Vector2 _origEntryListPos;
     private int _itemCount;
-    private List<ShipLogEntryListItem> _listItems;
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
@@ -33,10 +33,6 @@ public abstract class ItemListMode : ShipLogMode
     }
 
     public abstract string GetModeName();
-
-    protected abstract int UpdateAvailableItems();
-
-    protected abstract string GetItemName(int i);
 
     protected virtual void OnEntrySelected()
     {
@@ -65,6 +61,7 @@ public abstract class ItemListMode : ShipLogMode
         entryMenu.GetComponent<CanvasGroupAnimator>().SetImmediate(1f, Vector3.one); // Always visible inside the mode
 
         // Delete photo and expand entry list horizontally, maybe in the future we could use photos 
+        // TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
         Transform photoRoot = entryMenu.transform.Find("PhotoRoot");
         Destroy(photoRoot.gameObject);
         // idk this seems to work
@@ -87,7 +84,7 @@ public abstract class ItemListMode : ShipLogMode
         {
             Destroy(oldListItems[i].gameObject);
         }
-        _listItems = new List<ShipLogEntryListItem>();
+        ListItems = new List<ShipLogEntryListItem>();
         SetupAndAddItem(oldListItems[0]);
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
         _listNavigator = new ListNavigator();
@@ -96,9 +93,6 @@ public abstract class ItemListMode : ShipLogMode
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
-
-        CheckAvailableItems();
-        UpdateListItemVisuals(); // Do this because otherwise alphas are reset or something
     }
 
     public override void ExitMode()
@@ -108,15 +102,15 @@ public abstract class ItemListMode : ShipLogMode
 
     public void AddEntry()
     {
-        GameObject template = _listItems[0].gameObject;
+        GameObject template = ListItems[0].gameObject;
         GameObject newEntry = Instantiate(template, template.transform.parent);
-        newEntry.name = "EntryListItem_" + _listItems.Count;
+        newEntry.name = "EntryListItem_" + ListItems.Count;
         ShipLogEntryListItem item = newEntry.GetComponent<ShipLogEntryListItem>();
         SetupAndAddItem(item);
     }
 
     // TODO: PROTECTED?
-    private void SetEntryFocus(int index)
+    protected void SetEntryFocus(int index)
     {
         if (index == -1)
         {
@@ -127,7 +121,7 @@ public abstract class ItemListMode : ShipLogMode
             index = 0;
         }
 
-        // TODO Check index != current one
+        // TODO Check index != current one?
         int topIndex = Mathf.Max(0, index - 4);
         if (topIndex == 0)
         {
@@ -137,27 +131,28 @@ public abstract class ItemListMode : ShipLogMode
         else
         {
             // There are at least two items, so there are at least two UI items
-            float itemsSpace = _listItems[1].gameObject.GetComponent<RectTransform>().anchoredPosition.y -
-                               _listItems[0].gameObject.GetComponent<RectTransform>().anchoredPosition.y;    
+            float itemsSpace = ListItems[1].gameObject.GetComponent<RectTransform>().anchoredPosition.y -
+                               ListItems[0].gameObject.GetComponent<RectTransform>().anchoredPosition.y;    
             _entryListRoot.anchoredPosition = _origEntryListPos - new Vector2(0f, topIndex * itemsSpace);
         }
 
         Vector3 origArrowPos = _entrySelectArrow.localPosition;
-        Vector3 targetArrowY = _entrySelectArrow.parent.InverseTransformPoint(this._listItems[index].GetSelectionArrowPosition());
+        Vector3 targetArrowY = _entrySelectArrow.parent.InverseTransformPoint(this.ListItems[index].GetSelectionArrowPosition());
         _entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
 
         SelectedIndex = index;
-        UpdateListItemVisuals();
+        UpdateListItemAlphas();
 
         OnEntrySelected();
     }
 
-    private void UpdateListItemVisuals()
+    private void UpdateListItemAlphas()
     {
-        for (int i = 0; i < _listItems.Count; i++)
+        // AKA UpdateListItemVisuals
+        for (int i = 0; i < ListItems.Count; i++)
         {
             bool focus = i == SelectedIndex;
-            SetFocus(_listItems[i], focus);
+            SetFocus(ListItems[i], focus);
             int topIndex = Mathf.Max(0, SelectedIndex - 4);
             int lastOpaqueIndex = 4 + topIndex;
             // Don't use vanilla (only + 2) since we have a loot of room because no description field
@@ -165,49 +160,54 @@ public abstract class ItemListMode : ShipLogMode
             int lastVisibleIndex = lastOpaqueIndex + 9;
             if (i < topIndex)
             {
-                _listItems[i].SetListAlpha(0f);
+                ListItems[i].SetListAlpha(0f);
             }
             else if (i <= lastOpaqueIndex - 1)
             {
-                _listItems[i].SetListAlpha(1f);
+                ListItems[i].SetListAlpha(1f);
             }
             else if (i == lastOpaqueIndex)
             {
-                _listItems[i].SetListAlpha(0.5f);
+                ListItems[i].SetListAlpha(0.5f);
             }
             else if (i == lastOpaqueIndex + 1)
             {
-                _listItems[i].SetListAlpha(0.2f);
+                ListItems[i].SetListAlpha(0.2f);
             }
             else if (i <= lastVisibleIndex)
             {
-                _listItems[i].SetListAlpha(0.05f);
+                ListItems[i].SetListAlpha(0.05f);
             }
             else
             {
-                _listItems[i].SetListAlpha(0f);
+                ListItems[i].SetListAlpha(0f);
             }
         }
     }
 
     private void SetFocus(ShipLogEntryListItem item, bool focus)
     {
-        item._focusAlpha = focus ? 1f : 0.2f;
-        item.UpdateAlpha();
+        // Don't use the item SetFocus, requires entry != null
+        if (item._hasFocus != focus)
+        {
+            // The _hasFocus is to avoid changing the alpha in unnecessary cases maybe...
+            item._hasFocus = focus;
+            item._focusAlpha = focus ? 1f : 0.2f;
+            item.UpdateAlpha();
+        }
     }
     
     private void SetupAndAddItem(ShipLogEntryListItem item)
     {
         item.Init(_fontAndLanguageController);
         item._animAlpha = 1f;
-        item._hasFocus = false; // _hasFocus and _focusAlpha are probably unnecessary because SetListAlpha, but Setup does it, so just in case... 
-        item._focusAlpha = 0.2f;
+        item._focusAlpha = 0.2f; // probably unnecessary because SetFocus, but Setup does it, so just in case... 
         item._unreadIcon.gameObject.SetActive(false); // Icons also unnecessary? (virtual methods) TODO
         item._hudMarkerIcon.gameObject.SetActive(false);
         item._moreToExploreIcon.gameObject.SetActive(false);
         item.enabled = false;
         // TODO: Add option to AnimateTo? _entry required in Update()!!
-        _listItems.Add(item);
+        ListItems.Add(item);
     }
 
     public override void OnEnterComputer()
@@ -222,34 +222,30 @@ public abstract class ItemListMode : ShipLogMode
 
     public override void UpdateMode()
     {
-        // Just in case a item was disabled/added/modified
-        CheckAvailableItems();
-
         int selectionChange = _listNavigator.GetSelectionChange();
         if (selectionChange != 0)
         {
             SetEntryFocus(SelectedIndex + selectionChange);
-            // Don't play sound in SetEntryFocus to avoid playing it in UpdateAvailableModes (particularly on first time of EnterMode)
+            // Don't play sound in SetEntryFocus to avoid playing it in some situations
             OneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
         }
     }
 
-    private void CheckAvailableItems()
+    // TODO: protected? Maybe we want to check... Or readd Items with a setter... rethink this...
+    protected void UpdateItemCount(int itemCount)
     {
-        int itemCount = UpdateAvailableItems();
-        if (itemCount == -1) return; // Items not updated
+        if (itemCount == _itemCount) return;
         _itemCount = itemCount;
-        while (_listItems.Count < itemCount)
+        while (ListItems.Count < itemCount)
         {
             AddEntry();
         }
-        for (var i = 0; i < _listItems.Count; i++)
+        for (var i = 0; i < ListItems.Count; i++)
         {
-            ShipLogEntryListItem item = _listItems[i];
+            ShipLogEntryListItem item = ListItems[i];
             if (i < itemCount)
             {
                 item.gameObject.SetActive(true);
-                item._nameField.text = GetItemName(i);
             }
             else
             {
@@ -257,7 +253,17 @@ public abstract class ItemListMode : ShipLogMode
             }
         }
 
-        SetEntryFocus(0); // TODO: Try to select the previous selection?
+        if (SelectedIndex >= itemCount)
+        { 
+            // TODO: Try to select the previous selection?
+            // TODO: Handle count 0 case?
+            SetEntryFocus(_itemCount - 1);
+        }
+        else
+        {
+            // This for the case that entries were added on EnterMode for example
+            UpdateListItemAlphas();
+        }
     }
 
     public override string GetFocusedEntryID()
