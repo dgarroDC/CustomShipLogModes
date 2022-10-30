@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
@@ -80,7 +81,12 @@ public class CustomShipLogModes : ModBehaviour
     {
         bool canvasActive = _shipLogController._shipLogCanvas.gameObject.activeSelf;
         _shipLogController._shipLogCanvas.gameObject.SetActive(true);
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
         mode.Initialize(_shipLogController._centerPromptList, _shipLogController._upperRightPromptList, _shipLogController._oneShotSource);
+        
+        sw.Stop();
+        ModHelper.Console.WriteLine("Elapsed INIT " + mode+": "+sw.ElapsedMilliseconds);
         _shipLogController._shipLogCanvas.gameObject.SetActive(canvasActive);
     }
 
@@ -95,6 +101,7 @@ public class CustomShipLogModes : ModBehaviour
 
         if (_shipLogController != null)
         {
+            ModHelper.Console.WriteLine("ADDED AFTER:"+mode);
             // Vanilla modes are already initialized in ShipLogController.LateInitialize
             InitializeMode(mode);
         }

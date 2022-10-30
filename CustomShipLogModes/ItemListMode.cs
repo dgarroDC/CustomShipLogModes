@@ -29,6 +29,8 @@ public abstract class ItemListMode : ShipLogMode
         T itemListMode = itemListModeGo.AddComponent<T>();
         itemListModeGo.name = typeof(T).Name;
         return itemListMode;
+        // TODO: Fix that if you run this after map mode init then the icons are in wrong place? ALSO ALPHA?
+        // TODO: it's ultra BROKEN if Make is run in same frame after Destroy of map mode entry template!!! Solution? Keep only the last entry? But why?
     }
 
     public abstract string GetModeName();
@@ -51,6 +53,7 @@ public abstract class ItemListMode : ShipLogMode
         Destroy(gameObject.transform.Find("ScaleRoot").gameObject);
         Destroy(gameObject.transform.Find("ReticleImage").gameObject);
         _fontAndLanguageController = gameObject.GetComponent<ShipLogMapMode>()._fontAndLanguageController;
+        gameObject.DestroyAllComponents<ShipLogMapMode>();
 
         RectTransform entryMenu = gameObject.transform.Find("EntryMenu").GetRequiredComponent<RectTransform>();
         // Init animations
@@ -78,23 +81,25 @@ public abstract class ItemListMode : ShipLogMode
         _entryListRoot = entryListRoot.Find("EntryList").GetRequiredComponent<RectTransform>();
         _origEntryListPos = _entryListRoot.anchoredPosition;
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>();
-        int keepEntries = 1;
-        for (int i = keepEntries; i < oldListItems.Length; i++)
+        // TODO: Explain why we keep last!!!
+        for (int i = 0; i < oldListItems.Length - 1; i++)
         {
             Destroy(oldListItems[i].gameObject);
         }
         ListItems = new List<ShipLogEntryListItem>();
-        SetupAndAddItem(oldListItems[0]);
+        SetupAndAddItem(oldListItems[oldListItems.Length - 1]);
         _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
         _listNavigator = new ListNavigator();
 
         _itemCount = -1; // To force changing UI stuff
-        UpdateItemCount(0); // We need in case there aren't items yet (EnterMode in subclass won't add them), hide template entry and arrow
+        UpdateItemCount(0); // We need in case there aren't items yet (EnterMode in subclass won't add them), hide kept entry and arrow
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
+
+        UpdateListItemAlphas(); // Otherwise it seems they are reset when you fully exit the computer...
     }
 
     public override void ExitMode()
@@ -206,6 +211,9 @@ public abstract class ItemListMode : ShipLogMode
         item._unreadIcon.gameObject.SetActive(false); // Icons also unnecessary? (virtual methods) TODO
         item._hudMarkerIcon.gameObject.SetActive(false);
         item._moreToExploreIcon.gameObject.SetActive(false);
+        // TODO: Maybe I can make this a better alternative:
+        // item._nameField.transform.parent = item._iconRoot;
+        // item._nameField.transform.SetAsFirstSibling();
         item.enabled = false;
         // TODO: Add option to AnimateTo? _entry required in Update()!!
         ListItems.Add(item);
