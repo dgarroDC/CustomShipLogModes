@@ -15,7 +15,7 @@ public abstract class ItemListMode : ShipLogMode
     protected int SelectedIndex;
     protected List<ShipLogEntryListItem> ListItems;
 
-    private bool _usePhoto;
+    private bool _usePhotoAndDescField;
    
     private CanvasGroupAnimator _mapModeAnimator;
     private RectTransform _entryListRoot;
@@ -25,13 +25,13 @@ public abstract class ItemListMode : ShipLogMode
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
 
-    public static T Make<T>(bool usePhoto) where T : ItemListMode
+    public static T Make<T>(bool usePhotoAndDescField) where T : ItemListMode
     {
+        // TODO: Somehow do this after ShipLogMapMode.Initialize? Reuse entry list and GetMapMode() instead of Find...
         GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
-        // TODO: Somehow do this after ShipLogMapMode.Initialize?
         GameObject itemListModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
         T itemListMode = itemListModeGo.AddComponent<T>();
-        itemListMode._usePhoto = usePhoto;
+        itemListMode._usePhotoAndDescField = usePhotoAndDescField;
         itemListModeGo.name = typeof(T).Name;
         return itemListMode;
         // TODO: Fix that if you run this after map mode init then the icons are in wrong place? ALSO ALPHA?
@@ -55,38 +55,37 @@ public abstract class ItemListMode : ShipLogMode
 
         UpperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode!
 
-        ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>(); // TODO: We could some fields of this to access our components without Find
-        RectTransform entryMenu = transform.Find("EntryMenu").GetRequiredComponent<RectTransform>();
-        RectTransform entryListRoot = entryMenu.transform.Find("EntryListRoot").GetComponent<RectTransform>();
+        ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>();
+        _entryListRoot = mapMode._entryListRoot; // /EntryMenu/EntryListRoot/EntryList
 
-        // Init animations
-        _mapModeAnimator = gameObject.GetComponent<CanvasGroupAnimator>();
-        // Change animation?
+        // Init animations (allow changing?)
+        _mapModeAnimator = mapMode._mapModeAnimator;
         _mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-        entryMenu.GetComponent<CanvasGroupAnimator>().SetImmediate(1f, Vector3.one); // Always visible inside the mode
+        mapMode._entryMenuAnimator.SetImmediate(1f, Vector3.one); // Always visible inside the mode
 
-        // Delete photo and expand entry list horizontally
-        if (!_usePhoto)
+        if (!_usePhotoAndDescField)
         {
             // TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
-            Transform photoRoot = entryMenu.transform.Find("PhotoRoot");
-            Destroy(photoRoot.gameObject);
+            // Hide photo (root) and expand entry list horizontally
+            Transform photoRoot = mapMode._photoRoot;
+            photoRoot.gameObject.SetActive(false);
             // idk this seems to work
+            RectTransform entryListRoot = (RectTransform)_entryListRoot.parent;
             entryListRoot.anchorMax = new Vector2(1, 1);
             entryListRoot.offsetMax = new Vector2(0, 0);
+            
+            // Expand vertically because we don't currently use description field
+            // Magic number to match the bottom line with the description field, idk how to properly calculate it
+            RectTransform entryMenu = entryListRoot.parent as RectTransform; // Could also get from mapMode._entryMenuAnimator
+            entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594);
         }
 
-        // Expand vertically because we don't currently use description field
-        // Magic number to match the bottom line with the description field, idk how to properly calculate it
-        entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594);
-
         _fontAndLanguageController = mapMode._fontAndLanguageController;
-        Text nameField = transform.Find("NamePanelRoot").Find("Name").GetComponent<Text>();
         // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
-        nameField.text = GetModeName(); // TODO: Update on Enter? Or on update, so the subclass can change it? Maybe protected field? 
+        mapMode._nameField.text = GetModeName(); // NamePanelRoot/Name
+        // TODO: Update on Enter? Or on update, so the subclass can change it? Maybe protected field? 
 
         // Init entry list
-        _entryListRoot = entryListRoot.Find("EntryList").GetRequiredComponent<RectTransform>();
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>();
         // TODO: Explain why we keep last!!!
         for (int i = 0; i < oldListItems.Length - 1; i++)
@@ -95,7 +94,7 @@ public abstract class ItemListMode : ShipLogMode
         }
         ListItems = new List<ShipLogEntryListItem>();
         SetupAndAddItem(oldListItems[oldListItems.Length - 1]);
-        _entrySelectArrow = _entryListRoot.transform.Find("SelectArrow").GetRequiredComponent<RectTransform>();
+        _entrySelectArrow = mapMode._entrySelectArrow;
         _listNavigator = new ListNavigator();
         
         // Map mode was already initialized, maybe even before Make, the entry list post may be scrolled, use its original position
@@ -104,10 +103,10 @@ public abstract class ItemListMode : ShipLogMode
         _itemCount = -1; // To force changing UI stuff
         UpdateItemCount(0); // We need in case there aren't items yet (EnterMode in subclass won't add them), hide kept entry and arrow
         
-        // Destroy Map Mode specific stuff
-        Destroy(transform.Find("ScaleRoot").gameObject);
-        Destroy(transform.Find("ReticleImage").gameObject);
-        Destroy(mapMode);
+        // Hide/Destroy Map Mode specific stuff
+        mapMode._scaleRoot.gameObject.SetActive(false);
+        mapMode._reticleAnimator.gameObject.SetActive(false);
+        // Destroy(mapMode);
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
