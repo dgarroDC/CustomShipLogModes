@@ -18,8 +18,9 @@ public abstract class ItemListMode : ShipLogMode
     protected int SelectedIndex;
     protected List<ShipLogEntryListItem> ListItems;
 
-    private Image Photo;
-    private Text QuestionMark;
+    protected Image Photo;
+    protected Text QuestionMark;
+    protected ShipLogEntryDescriptionField DescriptionField;
 
     private bool _usePhotoAndDescField;
    
@@ -87,14 +88,31 @@ public abstract class ItemListMode : ShipLogMode
         }
         else
         {
+            // Photo & Question Mark
             Photo = mapMode._photo;
             // Don't start with Map Mode's last viewed image (although the implementer could just cover this...)
             Texture2D texture = Texture2D.blackTexture;
             Photo.sprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
             Photo.gameObject.SetActive(false);
-
             QuestionMark = mapMode._questionMark;
             QuestionMark.gameObject.SetActive(false);
+
+            // Description Field
+            GameObject descriptionFieldGo = mapMode._descriptionField.gameObject;
+            GameObject descriptionFieldClone = Instantiate(descriptionFieldGo, descriptionFieldGo.transform.position, descriptionFieldGo.transform.rotation, transform);
+            descriptionFieldClone.transform.localPosition = descriptionFieldGo.transform.localPosition;
+            DescriptionField = descriptionFieldClone.GetComponent<ShipLogEntryDescriptionField>();
+            DescriptionField._animator.SetImmediate(1f, Vector3.one); // Always visible inside the mode
+            DescriptionField.enabled = true;
+            // Recover null fields?
+            CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() => // TODO NULLS!
+                DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true));
+            // for (int i = 1; i < DescriptionField._factListItems.Length; i++)
+            // {
+            //     DescriptionField._factListItems[i] = factItems[i];
+            // }
+            DescriptionField._scrollPromptGamepad = new ScreenPrompt(InputLibrary.scrollLogText, UITextLibrary.GetString(UITextType.LogScrollTextPrompt));
+            DescriptionField._scrollPromptKbm = new ScreenPrompt(InputLibrary.toolOptionY, UITextLibrary.GetString(UITextType.LogScrollTextPrompt));
         }
 
         _fontAndLanguageController = mapMode._fontAndLanguageController;
