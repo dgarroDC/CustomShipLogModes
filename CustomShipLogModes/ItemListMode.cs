@@ -5,6 +5,9 @@ using UnityEngine.UI;
 
 namespace CustomShipLogModes;
 
+// TODO: Check this._listItems[j].Reset();??? _hasFocus for example
+// TODO: ShipLogEntryDescriptionFieldUtils : GetNext, Reset, ???
+
 // Heavily based on ShipLogMapMode
 public abstract class ItemListMode : ShipLogMode
 {
@@ -14,6 +17,9 @@ public abstract class ItemListMode : ShipLogMode
 
     protected int SelectedIndex;
     protected List<ShipLogEntryListItem> ListItems;
+
+    private Image Photo;
+    private Text QuestionMark;
 
     private bool _usePhotoAndDescField;
    
@@ -79,6 +85,17 @@ public abstract class ItemListMode : ShipLogMode
             RectTransform entryMenu = entryListRoot.parent as RectTransform; // Could also get from mapMode._entryMenuAnimator
             entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594);
         }
+        else
+        {
+            Photo = mapMode._photo;
+            // Don't start with Map Mode's last viewed image (although the implementer could just cover this...)
+            Texture2D texture = Texture2D.blackTexture;
+            Photo.sprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            Photo.gameObject.SetActive(false);
+
+            QuestionMark = mapMode._questionMark;
+            QuestionMark.gameObject.SetActive(false);
+        }
 
         _fontAndLanguageController = mapMode._fontAndLanguageController;
         // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
@@ -86,7 +103,8 @@ public abstract class ItemListMode : ShipLogMode
         // TODO: Update on Enter? Or on update, so the subclass can change it? Maybe protected field? 
 
         // Init entry list
-        ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>();
+        ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
+        // TODO: Analyze SuitLog approach: Limited entries that don't move (potential compatibility break!)
         // TODO: Explain why we keep last!!!
         for (int i = 0; i < oldListItems.Length - 1; i++)
         {
@@ -106,7 +124,7 @@ public abstract class ItemListMode : ShipLogMode
         // Hide/Destroy Map Mode specific stuff
         mapMode._scaleRoot.gameObject.SetActive(false);
         mapMode._reticleAnimator.gameObject.SetActive(false);
-        // Destroy(mapMode);
+        Destroy(mapMode);
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
