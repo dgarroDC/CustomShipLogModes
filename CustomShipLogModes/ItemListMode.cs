@@ -7,6 +7,7 @@ namespace CustomShipLogModes;
 
 // TODO: Check this._listItems[j].Reset();??? _hasFocus for example
 // TODO: ShipLogEntryDescriptionFieldUtils : GetNext, Reset, ???
+// TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
 
 // Heavily based on ShipLogMapMode
 public abstract class ItemListMode : ShipLogMode
@@ -72,7 +73,6 @@ public abstract class ItemListMode : ShipLogMode
 
         if (!_usePhotoAndDescField)
         {
-            // TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
             // Hide photo (root) and expand entry list horizontally
             Transform photoRoot = mapMode._photoRoot;
             photoRoot.gameObject.SetActive(false);
@@ -98,21 +98,7 @@ public abstract class ItemListMode : ShipLogMode
             QuestionMark.gameObject.SetActive(false);
 
             // Description Field
-            GameObject descriptionFieldGo = mapMode._descriptionField.gameObject;
-            GameObject descriptionFieldClone = Instantiate(descriptionFieldGo, descriptionFieldGo.transform.position, descriptionFieldGo.transform.rotation, transform);
-            descriptionFieldClone.transform.localPosition = descriptionFieldGo.transform.localPosition;
-            DescriptionField = descriptionFieldClone.GetComponent<ShipLogEntryDescriptionField>();
-            DescriptionField._animator.SetImmediate(1f, Vector3.one); // Always visible inside the mode
-            DescriptionField.enabled = true;
-            // Recover null fields?
-            CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() => // TODO NULLS!
-                DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true));
-            // for (int i = 1; i < DescriptionField._factListItems.Length; i++)
-            // {
-            //     DescriptionField._factListItems[i] = factItems[i];
-            // }
-            DescriptionField._scrollPromptGamepad = new ScreenPrompt(InputLibrary.scrollLogText, UITextLibrary.GetString(UITextType.LogScrollTextPrompt));
-            DescriptionField._scrollPromptKbm = new ScreenPrompt(InputLibrary.toolOptionY, UITextLibrary.GetString(UITextType.LogScrollTextPrompt));
+            DescriptionField = mapMode._descriptionField;
         }
 
         _fontAndLanguageController = mapMode._fontAndLanguageController;
@@ -148,6 +134,11 @@ public abstract class ItemListMode : ShipLogMode
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
+        if (_usePhotoAndDescField)
+        {
+            DescriptionField.SetText("TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT");
+            DescriptionField.SetVisible(true);
+        }
 
         if (_itemCount > 0)
         {
@@ -158,6 +149,7 @@ public abstract class ItemListMode : ShipLogMode
     public override void ExitMode()
     {
         _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
+        DescriptionField?.SetVisible(false);
     }
 
     public void AddEntry()
@@ -284,6 +276,9 @@ public abstract class ItemListMode : ShipLogMode
 
     public override void UpdateMode()
     {
+        // TODO: I'm sure we can remove this now!
+        if (DescriptionField != null) DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true);
+
         if (_itemCount < 2) return;
         int selectionChange = _listNavigator.GetSelectionChange();
         if (selectionChange != 0)
@@ -328,6 +323,7 @@ public abstract class ItemListMode : ShipLogMode
             else if (wasEmpty)
             {
                 // Important to reset stuff
+                // TODO IMPORTANT, REMOVE THIS
                 CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
                 {
                     // TODO: A flag, run on UpdateMode, explain...
