@@ -26,6 +26,7 @@ public abstract class ItemListMode : ShipLogMode
     private bool _usePhotoAndDescField;
    
     private CanvasGroupAnimator _mapModeAnimator;
+    private CanvasGroupAnimator _entryMenuAnimator;
     private RectTransform _entryListRoot;
     private Vector2 _origEntryListPos;
     private int _itemCount = -1;
@@ -69,7 +70,8 @@ public abstract class ItemListMode : ShipLogMode
         // Init animations (allow changing?)
         _mapModeAnimator = mapMode._mapModeAnimator;
         _mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-        mapMode._entryMenuAnimator.SetImmediate(1f, Vector3.one); // Always visible inside the mode
+        _entryMenuAnimator = mapMode._entryMenuAnimator;
+        _entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
         if (!_usePhotoAndDescField)
         {
@@ -134,6 +136,8 @@ public abstract class ItemListMode : ShipLogMode
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
+        _entryMenuAnimator.AnimateTo(1f, Vector3.one, 0.3f);
+
         if (_usePhotoAndDescField)
         {
             DescriptionField.SetText("TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT");
@@ -149,6 +153,7 @@ public abstract class ItemListMode : ShipLogMode
     public override void ExitMode()
     {
         _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
+        _entryMenuAnimator.AnimateTo(0f, new Vector3(1f, 0.01f, 1f), 0.3f);
         DescriptionField?.SetVisible(false);
     }
 
