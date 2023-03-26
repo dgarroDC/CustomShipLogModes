@@ -104,15 +104,6 @@ public class CustomShipLogModes : ModBehaviour
             ModHelper.Console.WriteLine("ADDED AFTER:"+mode);
             // Vanilla modes are already initialized in ShipLogController.LateInitialize
             InitializeMode(mode);
-
-            ShipLogMapMode mm = GetMapMode();
-            ShipLogMapMode cmm = Instantiate(mm.gameObject, mm.gameObject.transform.parent).GetComponent<ShipLogMapMode>();
-            Instance.ModHelper.Events.Unity.FireInNUpdates(() =>
-            {
-                Instance.ModHelper.Console.WriteLine("NULL O?" + (mm._listItems == null ? "YES" : "NO"));
-                Instance.ModHelper.Console.WriteLine("NULL C?" + (cmm._listItems == null ? "YES" : "NO")); // Because no SerializeField?
-            }, 120);
-
         }
     }
 

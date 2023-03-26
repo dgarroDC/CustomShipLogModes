@@ -33,7 +33,6 @@ public abstract class ItemListMode : ShipLogMode
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
-    private ShipLogEntryListItem[] _a;
 
     public static T Make<T>(bool usePhotoAndDescField) where T : ItemListMode
     {
@@ -109,13 +108,7 @@ public abstract class ItemListMode : ShipLogMode
         // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
         mapMode._nameField.text = GetModeName(); // NamePanelRoot/Name
         // TODO: Update on Enter? Or on update, so the subclass can change it? Maybe protected field? 
-        CustomShipLogModes.Instance.ModHelper.Console.WriteLine(GetModeName());
-        if (mapMode._listItems != null)
-                CustomShipLogModes.Instance.ModHelper.Console.WriteLine(GetModeName() + " ORIG=" +
-                                                                        mapMode._listItems.Length);
-        _a = mapMode._listItems;
-        // TODO: WHY IS THIS NULL EVEN LATE
-        
+
         // Init entry list
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
         // TODO: Analyze SuitLog approach: Limited entries that don't move (potential compatibility break!)
@@ -138,7 +131,7 @@ public abstract class ItemListMode : ShipLogMode
         // Hide/Destroy Map Mode specific stuff
         mapMode._scaleRoot.gameObject.SetActive(false);
         mapMode._reticleAnimator.gameObject.SetActive(false);
-    //    Destroy(mapMode);
+        Destroy(mapMode);
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
