@@ -49,6 +49,8 @@ public class CustomShipLogModes : ModBehaviour
     
     public void Setup(ShipLogController shipLogController)
     {
+        // We know: Vanilla modes already initialized this frame
+
         SetupPrompts();
 
         if (_shipLogController != null)
@@ -65,7 +67,8 @@ public class CustomShipLogModes : ModBehaviour
                 InitializeMode(mode);
             }
         }
-        
+
+        ItemListMode.CreatePrefab(GetMapMode());
         // Create mod selector mode
         _modSelectorMode = ItemListMode.Make<ModSelectorMode>(false);
         InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
@@ -272,6 +275,7 @@ public class CustomShipLogModes : ModBehaviour
         {
             modes.Add(new Tuple<ShipLogMode, string>(GetDetectiveMode(), UITextLibrary.GetString(UITextType.LogRumorModePrompt)));
         }
+        // TODO: Setting to disable Map Mode (might be good for future journal mod)
         modes.Add(new Tuple<ShipLogMode, string>(GetMapMode(), UITextLibrary.GetString(UITextType.LogMapModePrompt)));
 
         return modes;

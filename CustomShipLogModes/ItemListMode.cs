@@ -12,6 +12,9 @@ namespace CustomShipLogModes;
 // Heavily based on ShipLogMapMode
 public abstract class ItemListMode : ShipLogMode
 {
+    private static GameObject _prefab;
+    private static ShipLogMapMode _original;
+    
     protected ScreenPromptList CenterPromptList;
     protected ScreenPromptList UpperRightPromptList;
     protected OWAudioSource OneShotSource;
@@ -34,16 +37,22 @@ public abstract class ItemListMode : ShipLogMode
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
 
+    // TODO: Let other mods know when is this ready?
+    public static void CreatePrefab(ShipLogMapMode mapMode)
+    {
+        _original = mapMode;
+        _prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
+    }
+
     public static T Make<T>(bool usePhotoAndDescField) where T : ItemListMode
     {
         // TODO: Somehow do this after ShipLogMapMode.Initialize? Reuse entry list and GetMapMode() instead of Find...
-        // TODO: Do once, save as prefab
-        GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
-        GameObject itemListModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
+        // TODO: CHECK IF PREFAB IS NULL
+        GameObject itemListModeGo = Instantiate(_prefab, _original.transform.position, _original.transform.rotation, _original.transform.parent);
         T itemListMode = itemListModeGo.AddComponent<T>();
         itemListMode._usePhotoAndDescField = usePhotoAndDescField;
         itemListModeGo.name = typeof(T).Name;
-        return itemListMode;    
+        return itemListMode;
         // TODO: Fix that if you run this after map mode init then the icons are in wrong place? ALSO ALPHA?
         // TODO: it's ultra BROKEN if Make is run in same frame after Destroy of map mode entry template!!! Solution? Keep only the last entry? But why?
         // TODO: Also broken if map mode had selected entry > n (list scrolled) on copy, _origEntryListPos would be wrong! Copy _origEntryListPos from Map mode?
@@ -113,12 +122,12 @@ public abstract class ItemListMode : ShipLogMode
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
         // TODO: Analyze SuitLog approach: Limited entries that don't move (potential compatibility break!)
         // TODO: Explain why we keep last!!!
-        for (int i = 0; i < oldListItems.Length - 1; i++)
-        {
-            Destroy(oldListItems[i].gameObject);
-        }
         ListItems = new List<ShipLogEntryListItem>();
-        SetupAndAddItem(oldListItems[oldListItems.Length - 1]);
+        for (int i = 0; i < oldListItems.Length; i++)
+        {
+            SetupAndAddItem(oldListItems[i]);
+        }
+       // SetupAndAddItem(oldListItems[oldListItems.Length - 1]);
         _entrySelectArrow = mapMode._entrySelectArrow;
         _listNavigator = new ListNavigator();
         
