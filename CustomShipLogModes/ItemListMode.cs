@@ -33,16 +33,18 @@ public abstract class ItemListMode : ShipLogMode
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
+    private ShipLogEntryListItem[] _a;
 
     public static T Make<T>(bool usePhotoAndDescField) where T : ItemListMode
     {
         // TODO: Somehow do this after ShipLogMapMode.Initialize? Reuse entry list and GetMapMode() instead of Find...
+        // TODO: Do once, save as prefab
         GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
         GameObject itemListModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
         T itemListMode = itemListModeGo.AddComponent<T>();
         itemListMode._usePhotoAndDescField = usePhotoAndDescField;
         itemListModeGo.name = typeof(T).Name;
-        return itemListMode;
+        return itemListMode;    
         // TODO: Fix that if you run this after map mode init then the icons are in wrong place? ALSO ALPHA?
         // TODO: it's ultra BROKEN if Make is run in same frame after Destroy of map mode entry template!!! Solution? Keep only the last entry? But why?
         // TODO: Also broken if map mode had selected entry > n (list scrolled) on copy, _origEntryListPos would be wrong! Copy _origEntryListPos from Map mode?
@@ -107,7 +109,13 @@ public abstract class ItemListMode : ShipLogMode
         // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
         mapMode._nameField.text = GetModeName(); // NamePanelRoot/Name
         // TODO: Update on Enter? Or on update, so the subclass can change it? Maybe protected field? 
-
+        CustomShipLogModes.Instance.ModHelper.Console.WriteLine(GetModeName());
+        if (mapMode._listItems != null)
+                CustomShipLogModes.Instance.ModHelper.Console.WriteLine(GetModeName() + " ORIG=" +
+                                                                        mapMode._listItems.Length);
+        _a = mapMode._listItems;
+        // TODO: WHY IS THIS NULL EVEN LATE
+        
         // Init entry list
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
         // TODO: Analyze SuitLog approach: Limited entries that don't move (potential compatibility break!)
@@ -130,7 +138,7 @@ public abstract class ItemListMode : ShipLogMode
         // Hide/Destroy Map Mode specific stuff
         mapMode._scaleRoot.gameObject.SetActive(false);
         mapMode._reticleAnimator.gameObject.SetActive(false);
-        Destroy(mapMode);
+    //    Destroy(mapMode);
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
@@ -146,7 +154,7 @@ public abstract class ItemListMode : ShipLogMode
 
         if (_itemCount > 0)
         {
-            SetEntryFocus(SelectedIndex); // The index doesn't change, but this is important, also it seems they are reset when you fully exit the computer...
+            SetEntryFocus(SelectedIndex); // The index doesn't change, but this is important, also it seems they (alphas?) are reset when you fully exit the computer...
         }
     }
 
