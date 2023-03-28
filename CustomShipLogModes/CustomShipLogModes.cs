@@ -236,6 +236,13 @@ public class CustomShipLogModes : ModBehaviour
             // Just in case someone disabled the current custom mode, trapping us there!
             ChangeMode(GetDefaultMode());
         }
+        
+        if (OWInput.IsNewlyPressed(InputLibrary.autopilot))
+        {
+            ShipLogMode a  = _modSelectorMode.gameObject.AddComponent<ModeA>();
+            int count = _modes.Count;
+            AddMode(a, () => true, () => "Mode " +  count);
+        }
     }
 
     private ShipLogMode GetDefaultMode()
