@@ -10,6 +10,7 @@ namespace CustomShipLogModes;
 // TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
 
 // Heavily based on ShipLogMapMode
+// TODO: Non abstract? Wraper? Not a mode?
 public abstract class ItemListMode : ShipLogMode
 {
     private static GameObject _prefab;
@@ -20,7 +21,8 @@ public abstract class ItemListMode : ShipLogMode
     protected OWAudioSource OneShotSource;
 
     protected int SelectedIndex;
-    protected List<ShipLogEntryListItem> ListItems;
+    protected List<ShipLogEntryListItem> ListItems; // TODO: Rename _uiItems?
+    protected List<string> ContentsItems = new(); // TODO: Rename ListItems?
 
     protected Image Photo;
     protected Text QuestionMark;
@@ -32,7 +34,6 @@ public abstract class ItemListMode : ShipLogMode
     private CanvasGroupAnimator _entryMenuAnimator;
     private RectTransform _entryListRoot;
     private Vector2 _origEntryListPos;
-    private int _itemCount = -1;
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
@@ -42,6 +43,7 @@ public abstract class ItemListMode : ShipLogMode
     {
         _original = mapMode;
         _prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
+        // TODO: Somehow do the Initialize just one for the prefab? Although what about subclass?
     }
 
     public static T Make<T>(bool usePhotoAndDescField) where T : ItemListMode
@@ -125,18 +127,15 @@ public abstract class ItemListMode : ShipLogMode
         ListItems = new List<ShipLogEntryListItem>();
         for (int i = 0; i < oldListItems.Length; i++)
         {
+            // TODO: If this run while map mode is open entries with small font are back to default size?
             SetupAndAddItem(oldListItems[i]);
         }
-       // SetupAndAddItem(oldListItems[oldListItems.Length - 1]);
         _entrySelectArrow = mapMode._entrySelectArrow;
         _listNavigator = new ListNavigator();
         
         // Map mode was already initialized, maybe even before Make, the entry list post may be scrolled, use its original position
         _origEntryListPos = CustomShipLogModes.Instance.GetMapMode()._origEntryListPos;
 
-        _itemCount = -1; // To force changing UI stuff
-        UpdateItemCount(0); // We need in case there aren't items yet (EnterMode in subclass won't add them), hide kept entry and arrow
-        
         // Hide/Destroy Map Mode specific stuff
         mapMode._scaleRoot.gameObject.SetActive(false);
         mapMode._reticleAnimator.gameObject.SetActive(false);
@@ -154,7 +153,7 @@ public abstract class ItemListMode : ShipLogMode
             DescriptionField.SetVisible(true);
         }
 
-        if (_itemCount > 0)
+        if (ContentsItems.Count > 0)
         {
             SetEntryFocus(SelectedIndex); // The index doesn't change, but this is important, also it seems they (alphas?) are reset when you fully exit the computer...
         }
@@ -180,72 +179,55 @@ public abstract class ItemListMode : ShipLogMode
     {
         if (index == -1)
         {
-            index = _itemCount - 1; // Important to use the item list here, not the entry list!!!
+            index = ContentsItems.Count - 1; // Important to use the item list here, not the entry list!!!
         }
-        else if (index == _itemCount)
+        else if (index == ContentsItems.Count)
         {
             index = 0;
         }
-
-        int topIndex = Mathf.Max(0, index - 4);
-        if (topIndex == 0)
-        {
-            // TODO: Remove this case, just create some items on setup..
-            _entryListRoot.anchoredPosition = _origEntryListPos;
-        }
-        else
-        {
-            // There are at least two items, so there are at least two UI items
-            float itemsSpace = ListItems[1].gameObject.GetComponent<RectTransform>().anchoredPosition.y -
-                               ListItems[0].gameObject.GetComponent<RectTransform>().anchoredPosition.y;    
-            _entryListRoot.anchoredPosition = _origEntryListPos - new Vector2(0f, topIndex * itemsSpace);
-        }
-
-        Vector3 origArrowPos = _entrySelectArrow.localPosition;
-        Vector3 targetArrowY = _entrySelectArrow.parent.InverseTransformPoint(ListItems[index].GetSelectionArrowPosition());
-        _entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
+        //
+        // int topIndex = Mathf.Max(0, index - 4);
+        // if (topIndex == 0)
+        // {
+        //     // TODO: Remove this case, just create some items on setup..
+        //     _entryListRoot.anchoredPosition = _origEntryListPos;
+        // }
+        // else
+        // {
+        //     // There are at least two items, so there are at least two UI items
+        //     float itemsSpace = ListItems[1].gameObject.GetComponent<RectTransform>().anchoredPosition.y -
+        //                        ListItems[0].gameObject.GetComponent<RectTransform>().anchoredPosition.y;    
+        //     _entryListRoot.anchoredPosition = _origEntryListPos - new Vector2(0f, topIndex * itemsSpace);
+        // }
+        //
+        // Vector3 origArrowPos = _entrySelectArrow.localPosition;
+        // Vector3 targetArrowY = _entrySelectArrow.parent.InverseTransformPoint(ListItems[index].GetSelectionArrowPosition());
+        // _entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
 
         SelectedIndex = index;
-        UpdateListItemAlphas();
-
         OnItemSelected();
     }
 
-    private void UpdateListItemAlphas()
+    private void UpdateListUI()
     {
-        // AKA UpdateListItemVisuals
-        for (int i = 0; i < ListItems.Count; i++)
+        // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
+        int firstItem = SelectedIndex <= 4 ? 0 : SelectedIndex - 4; // TODO: More for without desc field?
+        for (int i = 0; i < 10; i++)
         {
-            bool focus = i == SelectedIndex;
-            SetFocus(ListItems[i], focus);
-            int topIndex = Mathf.Max(0, SelectedIndex - 4);
-            int lastOpaqueIndex = 4 + topIndex;
-            // Don't use vanilla (only + 2) since we have a loot of room because no description field
-            // TODO: Possible desc field
-            int lastVisibleIndex = lastOpaqueIndex + 9;
-            if (i < topIndex)
+            ShipLogEntryListItem uiItem = ListItems[i];
+            int itemIndex = firstItem + i;
+            if (itemIndex < ContentsItems.Count)
             {
-                ListItems[i].SetListAlpha(0f);
-            }
-            else if (i <= lastOpaqueIndex - 1)
-            {
-                ListItems[i].SetListAlpha(1f);
-            }
-            else if (i == lastOpaqueIndex)
-            {
-                ListItems[i].SetListAlpha(0.5f);
-            }
-            else if (i == lastOpaqueIndex + 1)
-            {
-                ListItems[i].SetListAlpha(0.2f);
-            }
-            else if (i <= lastVisibleIndex)
-            {
-                ListItems[i].SetListAlpha(0.05f);
+                uiItem._nameField.text = ContentsItems[itemIndex];
+                SetFocus(uiItem, itemIndex == SelectedIndex);
+                // TODO: Icons
+                // TODO: Arrow
+                uiItem.SetListAlpha(1); // TODO: alphas: last visible (7 in vanilla) -> 0.05, then 0.2, 0.5 and the rest 1
+                uiItem.gameObject.SetActive(true);
             }
             else
             {
-                ListItems[i].SetListAlpha(0f);
+                uiItem.gameObject.SetActive(false);
             }
         }
     }
@@ -294,7 +276,7 @@ public abstract class ItemListMode : ShipLogMode
         // TODO: I'm sure we can remove this now!
         if (DescriptionField != null) DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true);
 
-        if (_itemCount < 2) return;
+        if (ContentsItems.Count < 2) return;
         int selectionChange = _listNavigator.GetSelectionChange();
         if (selectionChange != 0)
         {
@@ -302,56 +284,53 @@ public abstract class ItemListMode : ShipLogMode
             // Don't play sound in SetEntryFocus to avoid playing it in some situations
             OneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
         }
-    }
-
-    protected void UpdateItemCount(int itemCount)
-    {
-        if (itemCount == _itemCount) return;
-        bool wasEmpty = _itemCount == 0;
-        _itemCount = itemCount;
-        while (ListItems.Count < itemCount)
-        {
-            AddEntry();
-        }
-        for (var i = 0; i < ListItems.Count; i++)
-        {
-            ShipLogEntryListItem item = ListItems[i];
-            if (i < itemCount)
-            {
-                item.gameObject.SetActive(true);
-            }
-            else
-            {
-                item.gameObject.SetActive(false);
-            }
-        }
         
-        _entrySelectArrow.gameObject.SetActive(itemCount > 0);
-
-        if (itemCount > 0)
-        {
-            if (SelectedIndex >= itemCount)
-            {
-                // TODO: Try to select the previous selection?
-                SetEntryFocus(_itemCount - 1);
-            }
-            else if (wasEmpty)
-            {
-                // Important to reset stuff
-                // TODO IMPORTANT, REMOVE THIS
-                CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
-                {
-                    // TODO: A flag, run on UpdateMode, explain...
-                    SetEntryFocus(0);
-                });
-            }
-            else
-            {
-                // This for the case that entries were added on EnterMode for example
-                UpdateListItemAlphas();
-            }
-        }
+        UpdateListUI();
     }
+
+    // protected void UpdateItemCount(int itemCount)
+    // {
+    //     if (itemCount == _itemCount) return;
+    //     bool wasEmpty = _itemCount == 0;
+    //     _itemCount = itemCount;
+    //     while (ListItems.Count < itemCount)
+    //     {
+    //         AddEntry();
+    //     }
+    //     for (var i = 0; i < ListItems.Count; i++)
+    //     {
+    //         ShipLogEntryListItem item = ListItems[i];
+    //         if (i < itemCount)
+    //         {
+    //             item.gameObject.SetActive(true);
+    //         }
+    //         else
+    //         {
+    //             item.gameObject.SetActive(false);
+    //         }
+    //     }
+    //     
+    //     _entrySelectArrow.gameObject.SetActive(itemCount > 0);
+    //
+    //     if (itemCount > 0)
+    //     {
+    //         if (SelectedIndex >= itemCount)
+    //         {
+    //             // TODO: Try to select the previous selection?
+    //             SetEntryFocus(_itemCount - 1);
+    //         }
+    //         else if (wasEmpty)
+    //         {
+    //             // Important to reset stuff
+    //             // TODO IMPORTANT, REMOVE THIS
+    //             CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
+    //             {
+    //                 // TODO: A flag, run on UpdateMode, explain...
+    //                 SetEntryFocus(0);
+    //             });
+    //         }
+    //     }
+    // }
 
     public override string GetFocusedEntryID()
     {

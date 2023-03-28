@@ -26,15 +26,20 @@ public class ModSelectorMode : ItemListMode
 
     private void UpdateAvailableModes()
     {
+        // TODO: Something is missing here?
         List<Tuple<ShipLogMode,string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes();
+        List<string> names = new List<string>();
         if (!modes.SequenceEqual(_modes))
         {
             _modes = modes;
-            UpdateItemCount(_modes.Count);
+            CustomShipLogModes.Instance.ModHelper.Console.WriteLine("MODES COUNT=" +_modes.Count);
             for (var i = 0; i < _modes.Count; i++)
             {
-                ListItems[i]._nameField.text = _modes[i].Item2;
+                names.Add(_modes[i].Item2);
+                CustomShipLogModes.Instance.ModHelper.Console.WriteLine( _modes[i].Item2);
             }
+
+            ContentsItems = names;
         }
     }
 
