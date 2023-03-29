@@ -36,7 +36,6 @@ public abstract class ItemListMode : ShipLogMode
     private CanvasGroupAnimator _mapModeAnimator;
     private CanvasGroupAnimator _entryMenuAnimator;
     private RectTransform _entryListRoot;
-    private Vector2 _origEntryListPos;
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
@@ -126,20 +125,15 @@ public abstract class ItemListMode : ShipLogMode
 
         // Init entry list
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
-        // TODO: Analyze SuitLog approach: Limited entries that don't move (potential compatibility break!)
-        // TODO: Explain why we keep last!!!
         ListItems = new List<ShipLogEntryListItem>();
         // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
         for (int i = 0; i < oldListItems.Length; i++)
         {
-            // TODO: If this run while map mode is open entries with small font are back to default size?
+            // TODO: If this run while map mode is open entries with small font are back to default size? Reel player but not ModeA?
             SetupAndAddItem(oldListItems[i]);
         }
         _entrySelectArrow = mapMode._entrySelectArrow;
         _listNavigator = new ListNavigator();
-        
-        // Map mode was already initialized, maybe even before Make, the entry list post may be scrolled, use its original position
-        _origEntryListPos = CustomShipLogModes.Instance.GetMapMode()._origEntryListPos;
 
         // Hide/Destroy Map Mode specific stuff
         mapMode._scaleRoot.gameObject.SetActive(false);
@@ -205,6 +199,7 @@ public abstract class ItemListMode : ShipLogMode
         OnItemSelected();
     }
 
+    // TODO: Test with 0, 1 items: this._entrySelectArrow.gameObject.SetActive(list.Count > 0);
     private void UpdateListUI()
     {
         // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
@@ -219,6 +214,14 @@ public abstract class ItemListMode : ShipLogMode
             {
                 uiItem._nameField.text = ContentsItems[itemIndex];
                 SetFocus(uiItem, itemIndex == SelectedIndex);
+                if (itemIndex == SelectedIndex)
+                {
+                    // Arrow
+                    Vector3 origArrowPos = _entrySelectArrow.localPosition;
+                    Vector3 targetArrowY = _entrySelectArrow.parent.InverseTransformPoint(uiItem.GetSelectionArrowPosition());
+                    _entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
+                }
+
                 // TODO: Icons, use ShipLogEntry?
                 // TODO: Arrow
                 float listAlpha = 1f;
