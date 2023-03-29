@@ -10,12 +10,15 @@ namespace CustomShipLogModes;
 // TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
 
 // Heavily based on ShipLogMapMode
-// TODO: Non abstract? Wraper? Not a mode?
+// TODO: Non abstract? Wraper? Not a mode? API return id (or GO?) for new "UI list"? + API methods for all actions  
 public abstract class ItemListMode : ShipLogMode
 {
-    private static GameObject _prefab;
+    private static GameObject _prefab; // TODO: Only one and switch? Although we want to allow any customization
     private static ShipLogMapMode _original;
-    
+
+    private const int TotalUIItems = 14;
+    private const int TotalUIItemsWithDescriptionField = 7; // One more could fit, but this is the vanilla way
+
     protected ScreenPromptList CenterPromptList;
     protected ScreenPromptList UpperRightPromptList;
     protected OWAudioSource OneShotSource;
@@ -29,7 +32,7 @@ public abstract class ItemListMode : ShipLogMode
     protected ShipLogEntryDescriptionField DescriptionField;
 
     private bool _usePhotoAndDescField;
-   
+   // TODO: All public?
     private CanvasGroupAnimator _mapModeAnimator;
     private CanvasGroupAnimator _entryMenuAnimator;
     private RectTransform _entryListRoot;
@@ -85,6 +88,7 @@ public abstract class ItemListMode : ShipLogMode
         _entryMenuAnimator = mapMode._entryMenuAnimator;
         _entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
+        // TODO: Changeable?
         if (!_usePhotoAndDescField)
         {
             // Hide photo (root) and expand entry list horizontally
@@ -125,6 +129,7 @@ public abstract class ItemListMode : ShipLogMode
         // TODO: Analyze SuitLog approach: Limited entries that don't move (potential compatibility break!)
         // TODO: Explain why we keep last!!!
         ListItems = new List<ShipLogEntryListItem>();
+        // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
         for (int i = 0; i < oldListItems.Length; i++)
         {
             // TODO: If this run while map mode is open entries with small font are back to default size?
@@ -166,15 +171,7 @@ public abstract class ItemListMode : ShipLogMode
         DescriptionField?.SetVisible(false);
     }
 
-    public void AddEntry()
-    {
-        GameObject template = ListItems[0].gameObject;
-        GameObject newEntry = Instantiate(template, template.transform.parent);
-        newEntry.name = "EntryListItem_" + ListItems.Count;
-        ShipLogEntryListItem item = newEntry.GetComponent<ShipLogEntryListItem>();
-        SetupAndAddItem(item);
-    }
-
+    // TODO: Callable from API? Although it could just be assigned to SelectedIndex
     protected void SetEntryFocus(int index)
     {
         if (index == -1)
@@ -211,18 +208,37 @@ public abstract class ItemListMode : ShipLogMode
     private void UpdateListUI()
     {
         // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
-        int firstItem = SelectedIndex <= 4 ? 0 : SelectedIndex - 4; // TODO: More for without desc field?
-        for (int i = 0; i < 10; i++)
+        int shownItems = _usePhotoAndDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
+        int lastSelectable = 4; // Scroll after that  // TODO: More for without desc field?
+        int itemIndexOnTop = SelectedIndex <= lastSelectable ? 0 : SelectedIndex - lastSelectable;
+        for (int i = 0; i < ListItems.Count; i++)
         {
             ShipLogEntryListItem uiItem = ListItems[i];
-            int itemIndex = firstItem + i;
-            if (itemIndex < ContentsItems.Count)
+            int itemIndex = itemIndexOnTop + i;
+            if (itemIndex < ContentsItems.Count && i < shownItems) // TODO: No need to iterate all?
             {
                 uiItem._nameField.text = ContentsItems[itemIndex];
                 SetFocus(uiItem, itemIndex == SelectedIndex);
-                // TODO: Icons
+                // TODO: Icons, use ShipLogEntry?
                 // TODO: Arrow
-                uiItem.SetListAlpha(1); // TODO: alphas: last visible (7 in vanilla) -> 0.05, then 0.2, 0.5 and the rest 1
+                float listAlpha = 1f;
+                // This replicates the vanilla look, entries with index 6 (last), 5 and 4 have this alphas,
+                // although is weird that 4 also has that alpha even if selected
+                // We interpret it as "the last" entries so in the mode without desc field we also use these values
+                // for the last 3 displayed items
+                if (i == shownItems - 1)
+                {
+                    listAlpha = 0.05f;
+                }
+                else if (i == shownItems -2)
+                {
+                    listAlpha = 0.2f;
+                }
+                else if (i == shownItems - 3)
+                {
+                    listAlpha = 0.5f;
+                }
+                uiItem.SetListAlpha(listAlpha);
                 uiItem.gameObject.SetActive(true);
             }
             else
@@ -276,15 +292,17 @@ public abstract class ItemListMode : ShipLogMode
         // TODO: I'm sure we can remove this now!
         if (DescriptionField != null) DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true);
 
-        if (ContentsItems.Count < 2) return;
-        int selectionChange = _listNavigator.GetSelectionChange();
-        if (selectionChange != 0)
+        if (ContentsItems.Count >= 2)
         {
-            SetEntryFocus(SelectedIndex + selectionChange);
-            // Don't play sound in SetEntryFocus to avoid playing it in some situations
-            OneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
+            int selectionChange = _listNavigator.GetSelectionChange(); // TODO: Return this or boolean to user (although it could just check if selected changed
+            if (selectionChange != 0)
+            {
+                SetEntryFocus(SelectedIndex + selectionChange);
+                // Don't play sound in SetEntryFocus to avoid playing it in some situations
+                OneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
+            }
         }
-        
+
         UpdateListUI();
     }
 
