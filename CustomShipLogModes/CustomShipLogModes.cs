@@ -14,7 +14,7 @@ public class CustomShipLogModes : ModBehaviour
 {
     public static CustomShipLogModes Instance;
 
-    private ModSelectorMode _modSelectorMode;
+    private ModeSelectorMode _modeSelectorMode;
     private Dictionary<ShipLogMode, Tuple<Func<bool>, Func<string>>> _modes = new();
    
     private bool _cycleModes;
@@ -68,16 +68,16 @@ public class CustomShipLogModes : ModBehaviour
             }
         }
 
-        ItemListMode.CreatePrefab(GetMapMode());
+        ItemsList.CreatePrefab(GetMapMode());
         // Create mod selector mode
-        GameObject modeSelectorModeGo = ItemListMode.Make(false);
-        _modSelectorMode = modeSelectorModeGo.AddComponent<ModSelectorMode>();
-        InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
+        GameObject modeSelectorModeGo = ItemsList.Make(false);
+        _modeSelectorMode = modeSelectorModeGo.AddComponent<ModeSelectorMode>();
+        InitializeMode(_modeSelectorMode); // We don't add this mode to _modes, so initialize it here
     }
 
     private void SetupPrompts()
     {
-        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModSelectorMode.Name);
+        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModeSelectorMode.Name);
         _modeSwapPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SwapMode), ""); // The text is updated
     }
 
@@ -221,8 +221,8 @@ public class CustomShipLogModes : ModBehaviour
         {
             // We know AllowModeSwap is true (and other necessary conditions because of UpdatePromptsVisibility),
             // except in Map Mode case (see special case)
-            _modSelectorMode.SetGoBackMode(currentMode);
-            ChangeMode(_modSelectorMode);
+            _modeSelectorMode.SetGoBackMode(currentMode);
+            ChangeMode(_modeSelectorMode);
             return;
         }
         if (_nextMode != null && Input.IsNewlyPressed(Input.Action.SwapMode))
@@ -240,7 +240,7 @@ public class CustomShipLogModes : ModBehaviour
         
         if (OWInput.IsNewlyPressed(InputLibrary.autopilot))
         {
-            ShipLogMode a  = _modSelectorMode.gameObject.AddComponent<ModeA>();
+            ShipLogMode a  = _modeSelectorMode.gameObject.AddComponent<ModeA>();
             int count = _modes.Count;
             AddMode(a, () => true, () => "Mode " +  count);
         }

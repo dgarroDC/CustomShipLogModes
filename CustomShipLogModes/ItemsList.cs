@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Security.Cryptography;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,8 +9,8 @@ namespace CustomShipLogModes;
 // TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
 
 // Heavily based on ShipLogMapMode
-// TODO: Non abstract? Wraper? Not a mode? API return id (or GO?) for new "UI list"? + API methods for all actions  
-public class ItemListMode : MonoBehaviour
+// TODO: API return id (or GO?) for new "UI list"? + API methods for all actions  
+public class ItemsList : MonoBehaviour
 {
     private static GameObject _prefab; // TODO: Only one and switch? Although we want to allow any customization
     private static ShipLogMapMode _original;
@@ -52,8 +51,8 @@ public class ItemListMode : MonoBehaviour
         // TODO: Somehow do this after ShipLogMapMode.Initialize? Reuse entry list and GetMapMode() instead of Find...
         // TODO: CHECK IF PREFAB IS NULL
         GameObject itemListModeGo = Instantiate(_prefab, _original.transform.position, _original.transform.rotation, _original.transform.parent);
-        ItemListMode itemListMode = itemListModeGo.AddComponent<ItemListMode>();
-        itemListMode._usePhotoAndDescField = usePhotoAndDescField;
+        ItemsList itemsList = itemListModeGo.AddComponent<ItemsList>();
+        itemsList._usePhotoAndDescField = usePhotoAndDescField;
         return itemListModeGo;
         // TODO: Fix that if you run this after map mode init then the icons are in wrong place? ALSO ALPHA?
         // TODO: it's ultra BROKEN if Make is run in same frame after Destroy of map mode entry template!!! Solution? Keep only the last entry? But why?
