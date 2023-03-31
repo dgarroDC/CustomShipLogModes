@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace CustomShipLogModes;
@@ -18,7 +19,9 @@ public class ItemsList : MonoBehaviour
     private const int TotalUIItems = 14;
     private const int TotalUIItemsWithDescriptionField = 7; // One more could fit, but this is the vanilla way
 
-    private OWAudioSource _oneShotSource;
+    // Private fields we want to keep when instantiating prefab
+    [SerializeField]
+    private OWAudioSource oneShotSource;
 
     public int SelectedIndex;
     protected List<ShipLogEntryListItem> ListItems; // TODO: Rename _uiItems?
@@ -43,7 +46,9 @@ public class ItemsList : MonoBehaviour
     {
         _original = mapMode;
         _prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
-        // TODO: Somehow do the Initialize just one for the prefab? Although what about subclass?
+        ItemsList itemsList = _prefab.AddComponent<ItemsList>();
+        // TODO: Somehow do the Initialize just one for the prefab?
+        itemsList.oneShotSource = _original._oneShotSource;
     }
 
     public static GameObject Make(bool usePhotoAndDescField)
@@ -51,12 +56,10 @@ public class ItemsList : MonoBehaviour
         // TODO: Somehow do this after ShipLogMapMode.Initialize? Reuse entry list and GetMapMode() instead of Find...
         // TODO: CHECK IF PREFAB IS NULL
         GameObject itemListModeGo = Instantiate(_prefab, _original.transform.position, _original.transform.rotation, _original.transform.parent);
-        ItemsList itemsList = itemListModeGo.AddComponent<ItemsList>();
+        _original._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode! TODO: Make a common parent object for that!
+        ItemsList itemsList = itemListModeGo.GetComponent<ItemsList>();
         itemsList._usePhotoAndDescField = usePhotoAndDescField;
         return itemListModeGo;
-        // TODO: Fix that if you run this after map mode init then the icons are in wrong place? ALSO ALPHA?
-        // TODO: it's ultra BROKEN if Make is run in same frame after Destroy of map mode entry template!!! Solution? Keep only the last entry? But why?
-        // TODO: Also broken if map mode had selected entry > n (list scrolled) on copy, _origEntryListPos would be wrong! Copy _origEntryListPos from Map mode?
     }
 
     protected virtual void OnItemSelected()
@@ -65,12 +68,8 @@ public class ItemsList : MonoBehaviour
         // TODO: On enter? Index starting in -1?
     }
 
-    public void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
+    public void Initialize()
     {
-        // TODO: Get all of these from _original?
-        _oneShotSource = oneShotSource;
-        upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode!
-
         ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>();
         _entryListRoot = mapMode._entryListRoot; // /EntryMenu/EntryListRoot/EntryList
 
@@ -147,6 +146,7 @@ public class ItemsList : MonoBehaviour
 
         if (ContentsItems.Count > 0)
         {
+            // TODO: Let the owner decide this?
             SetEntryFocus(SelectedIndex); // The index doesn't change, but this is important, also it seems they (alphas?) are reset when you fully exit the computer...
         }
     }
@@ -169,25 +169,6 @@ public class ItemsList : MonoBehaviour
         {
             index = 0;
         }
-        //
-        // int topIndex = Mathf.Max(0, index - 4);
-        // if (topIndex == 0)
-        // {
-        //     // TODO: Remove this case, just create some items on setup..
-        //     _entryListRoot.anchoredPosition = _origEntryListPos;
-        // }
-        // else
-        // {
-        //     // There are at least two items, so there are at least two UI items
-        //     float itemsSpace = ListItems[1].gameObject.GetComponent<RectTransform>().anchoredPosition.y -
-        //                        ListItems[0].gameObject.GetComponent<RectTransform>().anchoredPosition.y;    
-        //     _entryListRoot.anchoredPosition = _origEntryListPos - new Vector2(0f, topIndex * itemsSpace);
-        // }
-        //
-        // Vector3 origArrowPos = _entrySelectArrow.localPosition;
-        // Vector3 targetArrowY = _entrySelectArrow.parent.InverseTransformPoint(ListItems[index].GetSelectionArrowPosition());
-        // _entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
-
         SelectedIndex = index;
         OnItemSelected();
     }
@@ -216,7 +197,6 @@ public class ItemsList : MonoBehaviour
                 }
 
                 // TODO: Icons, use ShipLogEntry?
-                // TODO: Arrow
                 float listAlpha = 1f;
                 // This replicates the vanilla look, entries with index 6 (last), 5 and 4 have this alphas,
                 // although is weird that 4 also has that alpha even if selected
@@ -285,7 +265,7 @@ public class ItemsList : MonoBehaviour
             {
                 SetEntryFocus(SelectedIndex + selectionChange);
                 // Don't play sound in SetEntryFocus to avoid playing it in some situations
-                _oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
+                oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
             }
         }
 

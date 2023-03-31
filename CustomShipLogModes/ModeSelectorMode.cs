@@ -52,7 +52,7 @@ public class ModeSelectorMode : ShipLogMode
         _oneShotSource = oneShotSource;
         
         _itemsList = GetComponent<ItemsList>();
-        _itemsList.Initialize(centerPromptList, upperRightPromptList, oneShotSource);
+        _itemsList.Initialize();
         _itemsList.SetName(Name);
 
         SetupPrompts();
