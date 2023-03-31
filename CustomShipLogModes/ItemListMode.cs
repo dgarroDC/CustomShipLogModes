@@ -11,7 +11,7 @@ namespace CustomShipLogModes;
 
 // Heavily based on ShipLogMapMode
 // TODO: Non abstract? Wraper? Not a mode? API return id (or GO?) for new "UI list"? + API methods for all actions  
-public abstract class ItemListMode : ShipLogMode
+public class ItemListMode : MonoBehaviour
 {
     private static GameObject _prefab; // TODO: Only one and switch? Although we want to allow any customization
     private static ShipLogMapMode _original;
@@ -19,13 +19,11 @@ public abstract class ItemListMode : ShipLogMode
     private const int TotalUIItems = 14;
     private const int TotalUIItemsWithDescriptionField = 7; // One more could fit, but this is the vanilla way
 
-    protected ScreenPromptList CenterPromptList;
-    protected ScreenPromptList UpperRightPromptList;
-    protected OWAudioSource OneShotSource;
+    private OWAudioSource _oneShotSource;
 
-    protected int SelectedIndex;
+    public int SelectedIndex;
     protected List<ShipLogEntryListItem> ListItems; // TODO: Rename _uiItems?
-    protected List<string> ContentsItems = new(); // TODO: Rename ListItems?
+    public List<string> ContentsItems = new(); // TODO: Rename ListItems?
 
     protected Image Photo;
     protected Text QuestionMark;
@@ -39,6 +37,7 @@ public abstract class ItemListMode : ShipLogMode
     private ListNavigator _listNavigator;
     private RectTransform _entrySelectArrow;
     private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
+    private Text _nameField;
 
     // TODO: Let other mods know when is this ready?
     public static void CreatePrefab(ShipLogMapMode mapMode)
@@ -48,21 +47,18 @@ public abstract class ItemListMode : ShipLogMode
         // TODO: Somehow do the Initialize just one for the prefab? Although what about subclass?
     }
 
-    public static T Make<T>(bool usePhotoAndDescField) where T : ItemListMode
+    public static GameObject Make(bool usePhotoAndDescField)
     {
         // TODO: Somehow do this after ShipLogMapMode.Initialize? Reuse entry list and GetMapMode() instead of Find...
         // TODO: CHECK IF PREFAB IS NULL
         GameObject itemListModeGo = Instantiate(_prefab, _original.transform.position, _original.transform.rotation, _original.transform.parent);
-        T itemListMode = itemListModeGo.AddComponent<T>();
+        ItemListMode itemListMode = itemListModeGo.AddComponent<ItemListMode>();
         itemListMode._usePhotoAndDescField = usePhotoAndDescField;
-        itemListModeGo.name = typeof(T).Name;
-        return itemListMode;
+        return itemListModeGo;
         // TODO: Fix that if you run this after map mode init then the icons are in wrong place? ALSO ALPHA?
         // TODO: it's ultra BROKEN if Make is run in same frame after Destroy of map mode entry template!!! Solution? Keep only the last entry? But why?
         // TODO: Also broken if map mode had selected entry > n (list scrolled) on copy, _origEntryListPos would be wrong! Copy _origEntryListPos from Map mode?
     }
-
-    public abstract string GetModeName();
 
     protected virtual void OnItemSelected()
     {
@@ -70,13 +66,11 @@ public abstract class ItemListMode : ShipLogMode
         // TODO: On enter? Index starting in -1?
     }
 
-    public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
+    public void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
     {
-        CenterPromptList = centerPromptList;
-        UpperRightPromptList = upperRightPromptList;
-        OneShotSource = oneShotSource;
-
-        UpperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode!
+        // TODO: Get all of these from _original?
+        _oneShotSource = oneShotSource;
+        upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode!
 
         ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>();
         _entryListRoot = mapMode._entryListRoot; // /EntryMenu/EntryListRoot/EntryList
@@ -120,8 +114,8 @@ public abstract class ItemListMode : ShipLogMode
 
         _fontAndLanguageController = mapMode._fontAndLanguageController;
         // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
-        mapMode._nameField.text = GetModeName(); // NamePanelRoot/Name
-        // TODO: Update on Enter? Or on update, so the subclass can change it? Maybe protected field? 
+        _nameField = mapMode._nameField;
+        _nameField.text = ""; // NamePanelRoot/Name
 
         // Init entry list
         ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
@@ -141,7 +135,7 @@ public abstract class ItemListMode : ShipLogMode
         Destroy(mapMode);
     }
 
-    public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
+    public void Open()
     {
         _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
         _entryMenuAnimator.AnimateTo(1f, Vector3.one, 0.3f);
@@ -158,7 +152,7 @@ public abstract class ItemListMode : ShipLogMode
         }
     }
 
-    public override void ExitMode()
+    public void Close()
     {
         _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
         _entryMenuAnimator.AnimateTo(0f, new Vector3(1f, 0.01f, 1f), 0.3f);
@@ -280,17 +274,7 @@ public abstract class ItemListMode : ShipLogMode
         ListItems.Add(item);
     }
 
-    public override void OnEnterComputer()
-    { 
-        // No-op
-    }
-
-    public override void OnExitComputer()
-    { 
-        // No-op
-    }
-
-    public override void UpdateMode()
+    public void UpdateList()
     {
         // TODO: I'm sure we can remove this now!
         if (DescriptionField != null) DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true);
@@ -302,69 +286,15 @@ public abstract class ItemListMode : ShipLogMode
             {
                 SetEntryFocus(SelectedIndex + selectionChange);
                 // Don't play sound in SetEntryFocus to avoid playing it in some situations
-                OneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
+                _oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
             }
         }
 
         UpdateListUI();
     }
 
-    // protected void UpdateItemCount(int itemCount)
-    // {
-    //     if (itemCount == _itemCount) return;
-    //     bool wasEmpty = _itemCount == 0;
-    //     _itemCount = itemCount;
-    //     while (ListItems.Count < itemCount)
-    //     {
-    //         AddEntry();
-    //     }
-    //     for (var i = 0; i < ListItems.Count; i++)
-    //     {
-    //         ShipLogEntryListItem item = ListItems[i];
-    //         if (i < itemCount)
-    //         {
-    //             item.gameObject.SetActive(true);
-    //         }
-    //         else
-    //         {
-    //             item.gameObject.SetActive(false);
-    //         }
-    //     }
-    //     
-    //     _entrySelectArrow.gameObject.SetActive(itemCount > 0);
-    //
-    //     if (itemCount > 0)
-    //     {
-    //         if (SelectedIndex >= itemCount)
-    //         {
-    //             // TODO: Try to select the previous selection?
-    //             SetEntryFocus(_itemCount - 1);
-    //         }
-    //         else if (wasEmpty)
-    //         {
-    //             // Important to reset stuff
-    //             // TODO IMPORTANT, REMOVE THIS
-    //             CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
-    //             {
-    //                 // TODO: A flag, run on UpdateMode, explain...
-    //                 SetEntryFocus(0);
-    //             });
-    //         }
-    //     }
-    // }
-
-    public override string GetFocusedEntryID()
+    public void SetName(string nameValue)
     {
-        return "";
-    }
-
-    public override bool AllowCancelInput()
-    {
-        return true;
-    }
-
-    public override bool AllowModeSwap()
-    {
-        return true;
+        _nameField.text = nameValue;
     }
 }

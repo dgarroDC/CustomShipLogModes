@@ -6,23 +6,23 @@ using UnityEngine;
 namespace CustomShipLogModes;
 
 // TODO: Mode, not Mod
-public class ModSelectorMode : ItemListMode
+public class ModSelectorMode : ShipLogMode
 {
     // TODO: Translation
     public const string Name = "Select Mode";
 
-    protected List<Tuple<ShipLogMode,string>> _modes = new();
-    
+    private List<Tuple<ShipLogMode,string>> _modes = new();
+
+    private ItemListMode _itemList;
+
+    private ScreenPromptList _upperRightPromptList;
+    private OWAudioSource _oneShotSource;
+
     private ScreenPrompt _closePrompt;
     private ScreenPrompt _selectPrompt;
     
     private string _prevEntryId;
     private ShipLogMode _goBackMode;
-
-    public override string GetModeName()
-    {
-        return Name;
-    }
 
     private void UpdateAvailableModes()
     {
@@ -35,11 +35,10 @@ public class ModSelectorMode : ItemListMode
             CustomShipLogModes.Instance.ModHelper.Console.WriteLine("MODES COUNT=" +_modes.Count);
             for (var i = 0; i < _modes.Count; i++)
             {
-                names.Add(_modes[i].Item2);
-                CustomShipLogModes.Instance.ModHelper.Console.WriteLine( _modes[i].Item2);
+                names.Add(GetModeName(i));
             }
 
-            ContentsItems = names;
+            _itemList.ContentsItems = names;
         }
     }
 
@@ -50,7 +49,12 @@ public class ModSelectorMode : ItemListMode
 
     public override void Initialize(ScreenPromptList centerPromptList, ScreenPromptList upperRightPromptList, OWAudioSource oneShotSource)
     {
-        base.Initialize(centerPromptList, upperRightPromptList, oneShotSource);
+        _upperRightPromptList = upperRightPromptList;
+        _oneShotSource = oneShotSource;
+        
+        _itemList = GetComponent<ItemListMode>();
+        _itemList.Initialize(centerPromptList, upperRightPromptList, oneShotSource);
+        _itemList.SetName(Name);
 
         SetupPrompts();
     }
@@ -74,15 +78,15 @@ public class ModSelectorMode : ItemListMode
         }
 
         _selectPrompt.SetVisibility(true); // This is always possible I guess?
-        _selectPrompt.SetText("Select " + GetModeName(SelectedIndex));
+        _selectPrompt.SetText("Select " + GetModeName(_itemList.SelectedIndex));
     }
 
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
-        base.EnterMode(entryID, revealQueue);
+        _itemList.Open();
 
         // Yes, I'm using this sound for this, but it actually sounds similar to the vanilla modes enter sounds
-        OneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
+        _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
         _prevEntryId = entryID;
 
         UpdateAvailableModes();
@@ -90,13 +94,13 @@ public class ModSelectorMode : ItemListMode
         UpdatePromptsVisibility(); // Just in case?
 
         PromptManager promptManager = Locator.GetPromptManager();
-        promptManager.AddScreenPrompt(_closePrompt, UpperRightPromptList, TextAnchor.MiddleRight);
-        promptManager.AddScreenPrompt(_selectPrompt, UpperRightPromptList, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_closePrompt, _upperRightPromptList, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_selectPrompt, _upperRightPromptList, TextAnchor.MiddleRight);
     }
 
     public override void ExitMode()
     {
-        base.ExitMode();
+        _itemList.Close();
 
         PromptManager promptManager = Locator.GetPromptManager();
         promptManager.RemoveScreenPrompt(_closePrompt);
@@ -105,7 +109,7 @@ public class ModSelectorMode : ItemListMode
 
     public override void UpdateMode()
     {
-        base.UpdateMode();
+        _itemList.UpdateList();
         
         // Just in case a mode was disabled/added/renamed, do we really need to check this now?
         UpdateAvailableModes();
@@ -118,7 +122,7 @@ public class ModSelectorMode : ItemListMode
         }
         if (Input.IsNewlyPressed(Input.Action.SelectMode))
         {
-            CustomShipLogModes.Instance.RequestChangeMode(_modes[SelectedIndex].Item1);
+            CustomShipLogModes.Instance.RequestChangeMode(_modes[_itemList.SelectedIndex].Item1);
         }
     }
 
@@ -127,6 +131,16 @@ public class ModSelectorMode : ItemListMode
         _goBackMode = mode;
     }
 
+    public override void OnEnterComputer()
+    {
+        // No-op
+    }
+
+    public override void OnExitComputer()
+    {
+        // No-op
+    }
+    
     public override string GetFocusedEntryID()
     {
         return _prevEntryId;
