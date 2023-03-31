@@ -26,13 +26,12 @@ public class ItemsList : MonoBehaviour
     public int SelectedIndex;
     protected List<ShipLogEntryListItem> ListItems; // TODO: Rename _uiItems?
     public List<string> ContentsItems = new(); // TODO: Rename ListItems?
+    public Image Photo;
+    public Text QuestionMark;
+    public ShipLogEntryDescriptionField DescriptionField;
 
-    protected Image Photo;
-    protected Text QuestionMark;
-    protected ShipLogEntryDescriptionField DescriptionField;
-
+    // TODO: All public?
     private bool _usePhotoAndDescField;
-   // TODO: All public?
     private CanvasGroupAnimator _mapModeAnimator;
     private CanvasGroupAnimator _entryMenuAnimator;
     private RectTransform _entryListRoot;
@@ -60,12 +59,6 @@ public class ItemsList : MonoBehaviour
         ItemsList itemsList = itemListModeGo.GetComponent<ItemsList>();
         itemsList._usePhotoAndDescField = usePhotoAndDescField;
         return itemListModeGo;
-    }
-
-    protected virtual void OnItemSelected()
-    {
-        // No-op
-        // TODO: On enter? Index starting in -1?
     }
 
     public void Initialize()
@@ -143,12 +136,6 @@ public class ItemsList : MonoBehaviour
             DescriptionField.SetText("TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT");
             DescriptionField.SetVisible(true);
         }
-
-        if (ContentsItems.Count > 0)
-        {
-            // TODO: Let the owner decide this?
-            SetEntryFocus(SelectedIndex); // The index doesn't change, but this is important, also it seems they (alphas?) are reset when you fully exit the computer...
-        }
     }
 
     public void Close()
@@ -158,7 +145,7 @@ public class ItemsList : MonoBehaviour
         DescriptionField?.SetVisible(false);
     }
 
-    // TODO: Callable from API? Although it could just be assigned to SelectedIndex
+    // TODO: The checks should be done on navigating... Remove this method
     protected void SetEntryFocus(int index)
     {
         if (index == -1)
@@ -170,7 +157,6 @@ public class ItemsList : MonoBehaviour
             index = 0;
         }
         SelectedIndex = index;
-        OnItemSelected();
     }
 
     // TODO: Test with 0, 1 items: this._entrySelectArrow.gameObject.SetActive(list.Count > 0);
@@ -253,8 +239,10 @@ public class ItemsList : MonoBehaviour
         ListItems.Add(item);
     }
 
-    public void UpdateList()
+    public bool UpdateList()
     {
+        bool selectionChanged = false;
+        
         // TODO: I'm sure we can remove this now!
         if (DescriptionField != null) DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true);
 
@@ -263,6 +251,7 @@ public class ItemsList : MonoBehaviour
             int selectionChange = _listNavigator.GetSelectionChange(); // TODO: Return this or boolean to user (although it could just check if selected changed
             if (selectionChange != 0)
             {
+                selectionChanged = true;
                 SetEntryFocus(SelectedIndex + selectionChange);
                 // Don't play sound in SetEntryFocus to avoid playing it in some situations
                 oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
@@ -270,6 +259,8 @@ public class ItemsList : MonoBehaviour
         }
 
         UpdateListUI();
+
+        return selectionChanged;
     }
 
     public void SetName(string nameValue)
