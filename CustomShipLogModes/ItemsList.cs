@@ -30,19 +30,20 @@ public class ItemsList : MonoBehaviour
     public Text questionMark;
     public ShipLogEntryDescriptionField descriptionField;
 
-    public int SelectedIndex;
-    protected List<ShipLogEntryListItem> ListItems; // TODO: Rename _uiItems?
-    public List<string> ContentsItems = new(); // TODO: Rename ListItems?
+    public int selectedIndex;
+    public List<ShipLogEntryListItem> listItems; // TODO: Rename uiItems?
+    public List<string> contentsItems = new(); // TODO: Rename listItems?
+    public ListNavigator listNavigator;
 
-    // TODO: All public?
+    // public?
     private bool _usePhotoAndDescField;
-    private ListNavigator _listNavigator;
 
     // TODO: Let other mods know when is this ready?
     public static void CreatePrefab(ShipLogMapMode mapMode)
     {
         _original = mapMode;
         _prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
+        _prefab.name = "ItemsList";
         ItemsList itemsList = _prefab.AddComponent<ItemsList>();
         itemsList.oneShotSource = _original._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
 
@@ -57,7 +58,28 @@ public class ItemsList : MonoBehaviour
         itemsList.fontAndLanguageController = mapModeCopy._fontAndLanguageController;
         itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from _original, same object
 
+        // Init animations TODO: allow changing?
+        itemsList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
+        itemsList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
+        // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
+        itemsList.nameField.text = ""; // NamePanelRoot/Name
+
+        // Init entry list
+        ShipLogEntryListItem[] oldListItems = mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
+        itemsList.listItems = new List<ShipLogEntryListItem>();
+        // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
+        for (int i = 0; i < oldListItems.Length; i++)
+        {
+            // This are already disabled it seems, that's good, we don't want to call Update()
+            itemsList.listItems.Add(oldListItems[i]);
+        }
+        
+        itemsList.listNavigator = _prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
+        
+        // Hide/Destroy Map Mode specific stuff
+        mapModeCopy._scaleRoot.gameObject.SetActive(false);
+        mapModeCopy._reticleAnimator.gameObject.SetActive(false);
     }
 
     public static GameObject Make(bool usePhotoAndDescField)
@@ -74,10 +96,6 @@ public class ItemsList : MonoBehaviour
     public void Initialize()
     {
         ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>();
-
-        // Init animations (allow changing?)
-        mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-        entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
         // TODO: Changeable?
         if (!_usePhotoAndDescField)
@@ -103,24 +121,16 @@ public class ItemsList : MonoBehaviour
             photo.gameObject.SetActive(false);
             questionMark.gameObject.SetActive(false);
         }
-
-        // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
-        nameField.text = ""; // NamePanelRoot/Name
-
+        
         // Init entry list
-        ShipLogEntryListItem[] oldListItems = mapMode._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
-        ListItems = new List<ShipLogEntryListItem>();
-        // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
-        for (int i = 0; i < oldListItems.Length; i++)
+        foreach (ShipLogEntryListItem item in listItems)
         {
-            // TODO: If this run while map mode is open entries with small font are back to default size? Reel player but not ModeA?
-            SetupAndAddItem(oldListItems[i]);
+            // TODO: If this run while map mode is open entries with small font are back to default size?
+            // TODO: This is the expensive part and I can't move it out of Initialize? Then what was the point of migrating from ShipLogMode?
+            // Init() is the expensive part!
+            SetupItem(item);
         }
-        _listNavigator = new ListNavigator();
 
-        // Hide/Destroy Map Mode specific stuff
-        mapMode._scaleRoot.gameObject.SetActive(false);
-        mapMode._reticleAnimator.gameObject.SetActive(false);
         Destroy(mapMode);
     }
 
@@ -151,13 +161,13 @@ public class ItemsList : MonoBehaviour
     {
         if (index == -1)
         {
-            index = ContentsItems.Count - 1; // Important to use the item list here, not the entry list!!!
+            index = contentsItems.Count - 1; // Important to use the item list here, not the entry list!!!
         }
-        else if (index == ContentsItems.Count)
+        else if (index == contentsItems.Count)
         {
             index = 0;
         }
-        SelectedIndex = index;
+        selectedIndex = index;
     }
 
     // TODO: Test with 0, 1 items: this._entrySelectArrow.gameObject.SetActive(list.Count > 0);
@@ -166,16 +176,16 @@ public class ItemsList : MonoBehaviour
         // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
         int shownItems = _usePhotoAndDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
         int lastSelectable = 4; // Scroll after that  // TODO: More for without desc field?
-        int itemIndexOnTop = SelectedIndex <= lastSelectable ? 0 : SelectedIndex - lastSelectable;
-        for (int i = 0; i < ListItems.Count; i++)
+        int itemIndexOnTop = selectedIndex <= lastSelectable ? 0 : selectedIndex - lastSelectable;
+        for (int i = 0; i < listItems.Count; i++)
         {
-            ShipLogEntryListItem uiItem = ListItems[i];
+            ShipLogEntryListItem uiItem = listItems[i];
             int itemIndex = itemIndexOnTop + i;
-            if (itemIndex < ContentsItems.Count && i < shownItems) // TODO: No need to iterate all?
+            if (itemIndex < contentsItems.Count && i < shownItems) // TODO: No need to iterate all?
             {
-                uiItem._nameField.text = ContentsItems[itemIndex];
-                SetFocus(uiItem, itemIndex == SelectedIndex);
-                if (itemIndex == SelectedIndex)
+                uiItem._nameField.text = contentsItems[itemIndex];
+                SetFocus(uiItem, itemIndex == selectedIndex);
+                if (itemIndex == selectedIndex)
                 {
                     // Arrow
                     Vector3 origArrowPos = entrySelectArrow.localPosition;
@@ -214,7 +224,7 @@ public class ItemsList : MonoBehaviour
     private void SetFocus(ShipLogEntryListItem item, bool focus)
     {
         // Don't use the item SetFocus, requires entry != null
-        if (item._hasFocus != focus)
+        if (item._hasFocus != focus || item._focusAlpha == 0f) // Second check for first time
         {
             // The _hasFocus is to avoid changing the alpha in unnecessary cases maybe...
             item._hasFocus = focus;
@@ -223,34 +233,32 @@ public class ItemsList : MonoBehaviour
         }
     }
     
-    private void SetupAndAddItem(ShipLogEntryListItem item)
+    // TODO: Remove this, it seems all can me removed all moved to prefab initialization...
+    private void SetupItem(ShipLogEntryListItem item)
     {
-        item.Init(fontAndLanguageController);
-        item._animAlpha = 1f;
-        item._focusAlpha = 0.2f; // probably unnecessary because SetFocus, but Setup does it, so just in case...
+        // Maybe we should do the Init() here, but the fontController operation takes a lot of time!
+        item._animAlpha = 1f;  // We don't animate, _entry required in Update()!!
         item._nameField.text = "If you're reading this, this is a bug, please report it!";
+        
+        // TODO: Do this in UpdateListUI()
         item._unreadIcon.gameObject.SetActive(false); // Icons also unnecessary? (virtual methods) TODO
         item._hudMarkerIcon.gameObject.SetActive(false);
         item._moreToExploreIcon.gameObject.SetActive(false);
-        // TODO: Maybe I can make this a better alternative:
-        // item._nameField.transform.parent = item._iconRoot;
-        // item._nameField.transform.SetAsFirstSibling();
-        item.enabled = false;
-        // TODO: Add option to AnimateTo? _entry required in Update()!!
-        ListItems.Add(item);
+
+        // item.enabled = false;
     }
 
     public bool UpdateList()
     {
         bool selectionChanged = false;
 
-        if (ContentsItems.Count >= 2)
+        if (contentsItems.Count >= 2)
         {
-            int selectionChange = _listNavigator.GetSelectionChange(); // TODO: Return this or boolean to user (although it could just check if selected changed
+            int selectionChange = listNavigator.GetSelectionChange(); // TODO: Return this or boolean to user (although it could just check if selected changed
             if (selectionChange != 0)
             {
                 selectionChanged = true;
-                SetEntryFocus(SelectedIndex + selectionChange);
+                SetEntryFocus(selectedIndex + selectionChange);
                 // Don't play sound in SetEntryFocus to avoid playing it in some situations
                 oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
             }

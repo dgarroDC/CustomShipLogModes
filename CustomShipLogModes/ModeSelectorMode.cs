@@ -38,7 +38,7 @@ public class ModeSelectorMode : ShipLogMode
                 names.Add(GetModeName(i));
             }
 
-            _itemsList.ContentsItems = names;
+            _itemsList.contentsItems = names;
         }
     }
 
@@ -78,7 +78,7 @@ public class ModeSelectorMode : ShipLogMode
         }
 
         _selectPrompt.SetVisibility(true); // This is always possible I guess?
-        _selectPrompt.SetText("Select " + GetModeName(_itemsList.SelectedIndex));
+        _selectPrompt.SetText("Select " + GetModeName(_itemsList.selectedIndex));
     }
 
     // TODO: Review removed modes, etc. Index still working?
@@ -123,7 +123,7 @@ public class ModeSelectorMode : ShipLogMode
         }
         if (Input.IsNewlyPressed(Input.Action.SelectMode))
         {
-            CustomShipLogModes.Instance.RequestChangeMode(_modes[_itemsList.SelectedIndex].Item1);
+            CustomShipLogModes.Instance.RequestChangeMode(_modes[_itemsList.selectedIndex].Item1);
         }
     }
 
