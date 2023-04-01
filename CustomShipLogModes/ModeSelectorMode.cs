@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace CustomShipLogModes;
 
+// TODO: Start with selected mode
 public class ModeSelectorMode : ShipLogMode
 {
     // TODO: Translation
@@ -80,6 +81,7 @@ public class ModeSelectorMode : ShipLogMode
         _selectPrompt.SetText("Select " + GetModeName(_itemsList.SelectedIndex));
     }
 
+    // TODO: Review removed modes, etc. Index still working?
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
         _itemsList.Open();

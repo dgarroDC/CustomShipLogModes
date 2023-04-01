@@ -19,26 +19,24 @@ public class ItemsList : MonoBehaviour
     private const int TotalUIItems = 14;
     private const int TotalUIItemsWithDescriptionField = 7; // One more could fit, but this is the vanilla way
 
-    // Private fields we want to keep when instantiating prefab
-    [SerializeField]
-    private OWAudioSource oneShotSource;
+    // From ShipLogMapMode
+    public OWAudioSource oneShotSource; 
+    public CanvasGroupAnimator mapModeAnimator;
+    public CanvasGroupAnimator entryMenuAnimator;
+    public RectTransform entrySelectArrow;
+    public Text nameField;
+    public FontAndLanguageController fontAndLanguageController; // TODO: Do we really need this? Not used?
+    public Image photo;
+    public Text questionMark;
+    public ShipLogEntryDescriptionField descriptionField;
 
     public int SelectedIndex;
     protected List<ShipLogEntryListItem> ListItems; // TODO: Rename _uiItems?
     public List<string> ContentsItems = new(); // TODO: Rename ListItems?
-    public Image Photo;
-    public Text QuestionMark;
-    public ShipLogEntryDescriptionField DescriptionField;
 
     // TODO: All public?
     private bool _usePhotoAndDescField;
-    private CanvasGroupAnimator _mapModeAnimator;
-    private CanvasGroupAnimator _entryMenuAnimator;
-    private RectTransform _entryListRoot;
     private ListNavigator _listNavigator;
-    private RectTransform _entrySelectArrow;
-    private FontAndLanguageController _fontAndLanguageController; // Do we really need this?
-    private Text _nameField;
 
     // TODO: Let other mods know when is this ready?
     public static void CreatePrefab(ShipLogMapMode mapMode)
@@ -46,8 +44,20 @@ public class ItemsList : MonoBehaviour
         _original = mapMode;
         _prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
         ItemsList itemsList = _prefab.AddComponent<ItemsList>();
-        // TODO: Somehow do the Initialize just one for the prefab?
-        itemsList.oneShotSource = _original._oneShotSource;
+        itemsList.oneShotSource = _original._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
+
+        // Copy serialized fields from MapMode TODO: Just store map mode?
+        ShipLogMapMode mapModeCopy = _prefab.GetComponent<ShipLogMapMode>();
+        itemsList.mapModeAnimator = mapModeCopy._mapModeAnimator;
+        itemsList.entryMenuAnimator = mapModeCopy._entryMenuAnimator;
+        itemsList.photo = mapModeCopy._photo;
+        itemsList.questionMark = mapModeCopy._questionMark;
+        itemsList.entrySelectArrow = mapModeCopy._entrySelectArrow;
+        itemsList.nameField = mapModeCopy._nameField;
+        itemsList.fontAndLanguageController = mapModeCopy._fontAndLanguageController;
+        itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from _original, same object
+
+
     }
 
     public static GameObject Make(bool usePhotoAndDescField)
@@ -64,13 +74,10 @@ public class ItemsList : MonoBehaviour
     public void Initialize()
     {
         ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>();
-        _entryListRoot = mapMode._entryListRoot; // /EntryMenu/EntryListRoot/EntryList
 
         // Init animations (allow changing?)
-        _mapModeAnimator = mapMode._mapModeAnimator;
-        _mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-        _entryMenuAnimator = mapMode._entryMenuAnimator;
-        _entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
+        mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
+        entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
         // TODO: Changeable?
         if (!_usePhotoAndDescField)
@@ -79,7 +86,7 @@ public class ItemsList : MonoBehaviour
             Transform photoRoot = mapMode._photoRoot;
             photoRoot.gameObject.SetActive(false);
             // idk this seems to work
-            RectTransform entryListRoot = (RectTransform)_entryListRoot.parent;
+            RectTransform entryListRoot = (RectTransform)mapMode._entryListRoot.parent;
             entryListRoot.anchorMax = new Vector2(1, 1);
             entryListRoot.offsetMax = new Vector2(0, 0);
             
@@ -90,26 +97,18 @@ public class ItemsList : MonoBehaviour
         }
         else
         {
-            // Photo & Question Mark
-            Photo = mapMode._photo;
             // Don't start with Map Mode's last viewed image (although the implementer could just cover this...)
             Texture2D texture = Texture2D.blackTexture;
-            Photo.sprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-            Photo.gameObject.SetActive(false);
-            QuestionMark = mapMode._questionMark;
-            QuestionMark.gameObject.SetActive(false);
-
-            // Description Field
-            DescriptionField = mapMode._descriptionField;
+            photo.sprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            photo.gameObject.SetActive(false);
+            questionMark.gameObject.SetActive(false);
         }
 
-        _fontAndLanguageController = mapMode._fontAndLanguageController;
         // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
-        _nameField = mapMode._nameField;
-        _nameField.text = ""; // NamePanelRoot/Name
+        nameField.text = ""; // NamePanelRoot/Name
 
         // Init entry list
-        ShipLogEntryListItem[] oldListItems = _entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
+        ShipLogEntryListItem[] oldListItems = mapMode._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
         ListItems = new List<ShipLogEntryListItem>();
         // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
         for (int i = 0; i < oldListItems.Length; i++)
@@ -117,7 +116,6 @@ public class ItemsList : MonoBehaviour
             // TODO: If this run while map mode is open entries with small font are back to default size? Reel player but not ModeA?
             SetupAndAddItem(oldListItems[i]);
         }
-        _entrySelectArrow = mapMode._entrySelectArrow;
         _listNavigator = new ListNavigator();
 
         // Hide/Destroy Map Mode specific stuff
@@ -128,21 +126,24 @@ public class ItemsList : MonoBehaviour
 
     public void Open()
     {
-        _mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
-        _entryMenuAnimator.AnimateTo(1f, Vector3.one, 0.3f);
+        mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
+        entryMenuAnimator.AnimateTo(1f, Vector3.one, 0.3f);
 
         if (_usePhotoAndDescField)
         {
-            DescriptionField.SetText("TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT");
-            DescriptionField.SetVisible(true);
+            descriptionField.SetText("TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT");
+            descriptionField.SetVisible(true);
         }
     }
 
     public void Close()
     {
-        _mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
-        _entryMenuAnimator.AnimateTo(0f, new Vector3(1f, 0.01f, 1f), 0.3f);
-        DescriptionField?.SetVisible(false);
+        mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
+        entryMenuAnimator.AnimateTo(0f, new Vector3(1f, 0.01f, 1f), 0.3f);
+        if (_usePhotoAndDescField)
+        {
+            descriptionField.SetVisible(false);
+        }
     }
 
     // TODO: The checks should be done on navigating... Remove this method
@@ -177,9 +178,9 @@ public class ItemsList : MonoBehaviour
                 if (itemIndex == SelectedIndex)
                 {
                     // Arrow
-                    Vector3 origArrowPos = _entrySelectArrow.localPosition;
-                    Vector3 targetArrowY = _entrySelectArrow.parent.InverseTransformPoint(uiItem.GetSelectionArrowPosition());
-                    _entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
+                    Vector3 origArrowPos = entrySelectArrow.localPosition;
+                    Vector3 targetArrowY = entrySelectArrow.parent.InverseTransformPoint(uiItem.GetSelectionArrowPosition());
+                    entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
                 }
 
                 // TODO: Icons, use ShipLogEntry?
@@ -224,7 +225,7 @@ public class ItemsList : MonoBehaviour
     
     private void SetupAndAddItem(ShipLogEntryListItem item)
     {
-        item.Init(_fontAndLanguageController);
+        item.Init(fontAndLanguageController);
         item._animAlpha = 1f;
         item._focusAlpha = 0.2f; // probably unnecessary because SetFocus, but Setup does it, so just in case...
         item._nameField.text = "If you're reading this, this is a bug, please report it!";
@@ -242,9 +243,6 @@ public class ItemsList : MonoBehaviour
     public bool UpdateList()
     {
         bool selectionChanged = false;
-        
-        // TODO: I'm sure we can remove this now!
-        if (DescriptionField != null) DescriptionField._factListItems = DescriptionField.GetComponentsInChildren<ShipLogFactListItem>(true);
 
         if (ContentsItems.Count >= 2)
         {
@@ -265,6 +263,6 @@ public class ItemsList : MonoBehaviour
 
     public void SetName(string nameValue)
     {
-        _nameField.text = nameValue;
+        nameField.text = nameValue;
     }
 }
