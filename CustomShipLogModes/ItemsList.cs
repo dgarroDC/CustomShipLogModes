@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -42,13 +43,13 @@ public class ItemsList : MonoBehaviour
     public static void CreatePrefab(ShipLogMapMode mapMode)
     {
         _original = mapMode;
-        _prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
-        _prefab.name = "ItemsList";
-        ItemsList itemsList = _prefab.AddComponent<ItemsList>();
+        GameObject prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
+        prefab.name = "ItemsList";
+        ItemsList itemsList = prefab.AddComponent<ItemsList>();
         itemsList.oneShotSource = _original._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
 
         // Copy serialized fields from MapMode TODO: Just store map mode?
-        ShipLogMapMode mapModeCopy = _prefab.GetComponent<ShipLogMapMode>();
+        ShipLogMapMode mapModeCopy = prefab.GetComponent<ShipLogMapMode>();
         itemsList.mapModeAnimator = mapModeCopy._mapModeAnimator;
         itemsList.entryMenuAnimator = mapModeCopy._entryMenuAnimator;
         itemsList.photo = mapModeCopy._photo;
@@ -72,25 +73,40 @@ public class ItemsList : MonoBehaviour
         for (int i = 0; i < oldListItems.Length; i++)
         {
             // This are already disabled it seems, that's good, we don't want to call Update()
-            itemsList.listItems.Add(oldListItems[i]);
+            // _animAlpha is already 1f
+            if (i < TotalUIItems)
+            {
+                itemsList.listItems.Add(oldListItems[i]);
+            }
+            else
+            {
+                Destroy(oldListItems[i].gameObject);
+            }
         }
+
+        itemsList.listNavigator = prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
         
-        itemsList.listNavigator = _prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
+        // Destroy Map Mode specific stuff
+        Destroy(mapModeCopy._scaleRoot.gameObject);
+        Destroy(mapModeCopy._reticleAnimator.gameObject);
         
-        // Hide/Destroy Map Mode specific stuff
-        mapModeCopy._scaleRoot.gameObject.SetActive(false);
-        mapModeCopy._reticleAnimator.gameObject.SetActive(false);
+        // Wait a frame before marking the prefab ready, so things are properly destroyed
+        CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
+        {
+            _prefab = prefab;
+        });
     }
 
-    public static GameObject Make(bool usePhotoAndDescField)
+    public static void Make(bool usePhotoAndDescField, Action<GameObject> callback)
     {
-        // TODO: Somehow do this after ShipLogMapMode.Initialize? Reuse entry list and GetMapMode() instead of Find...
-        // TODO: CHECK IF PREFAB IS NULL
-        GameObject itemListModeGo = Instantiate(_prefab, _original.transform.position, _original.transform.rotation, _original.transform.parent);
-        _original._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode! TODO: Make a common parent object for that!
-        ItemsList itemsList = itemListModeGo.GetComponent<ItemsList>();
-        itemsList._usePhotoAndDescField = usePhotoAndDescField;
-        return itemListModeGo;
+        CustomShipLogModes.Instance.ModHelper.Events.Unity.RunWhen(() => _prefab != null, () =>
+        {
+            GameObject itemListModeGo = Instantiate(_prefab, _original.transform.position, _original.transform.rotation, _original.transform.parent);
+            _original._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode! TODO: Make a common parent object for that!
+            ItemsList itemsList = itemListModeGo.GetComponent<ItemsList>();
+            itemsList._usePhotoAndDescField = usePhotoAndDescField;
+            callback.Invoke(itemListModeGo);
+        });
     }
 
     public void Initialize()
@@ -122,15 +138,6 @@ public class ItemsList : MonoBehaviour
             questionMark.gameObject.SetActive(false);
         }
         
-        // Init entry list
-        foreach (ShipLogEntryListItem item in listItems)
-        {
-            // TODO: If this run while map mode is open entries with small font are back to default size?
-            // TODO: This is the expensive part and I can't move it out of Initialize? Then what was the point of migrating from ShipLogMode?
-            // Init() is the expensive part!
-            SetupItem(item);
-        }
-
         Destroy(mapMode);
     }
 
@@ -193,7 +200,11 @@ public class ItemsList : MonoBehaviour
                     entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
                 }
 
-                // TODO: Icons, use ShipLogEntry?
+                // Icons TODO
+                uiItem._unreadIcon.gameObject.SetActive(false);
+                uiItem._hudMarkerIcon.gameObject.SetActive(false);
+                uiItem._moreToExploreIcon.gameObject.SetActive(false);
+                
                 float listAlpha = 1f;
                 // This replicates the vanilla look, entries with index 6 (last), 5 and 4 have this alphas,
                 // although is weird that 4 also has that alpha even if selected
@@ -233,21 +244,6 @@ public class ItemsList : MonoBehaviour
         }
     }
     
-    // TODO: Remove this, it seems all can me removed all moved to prefab initialization...
-    private void SetupItem(ShipLogEntryListItem item)
-    {
-        // Maybe we should do the Init() here, but the fontController operation takes a lot of time!
-        item._animAlpha = 1f;  // We don't animate, _entry required in Update()!!
-        item._nameField.text = "If you're reading this, this is a bug, please report it!";
-        
-        // TODO: Do this in UpdateListUI()
-        item._unreadIcon.gameObject.SetActive(false); // Icons also unnecessary? (virtual methods) TODO
-        item._hudMarkerIcon.gameObject.SetActive(false);
-        item._moreToExploreIcon.gameObject.SetActive(false);
-
-        // item.enabled = false;
-    }
-
     public bool UpdateList()
     {
         bool selectionChanged = false;
