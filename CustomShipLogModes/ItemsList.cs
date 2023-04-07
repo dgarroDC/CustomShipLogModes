@@ -31,7 +31,7 @@ public class ItemsList : MonoBehaviour
 
     public int selectedIndex;
     public List<ShipLogEntryListItem> listItems; // TODO: Rename uiItems?
-    public List<string> contentsItems = new(); // TODO: Rename listItems?
+    public List<Tuple<string, bool, bool, bool>> contentsItems = new(); // TODO: Rename listItems?
     public ListNavigator listNavigator;
 
     // public?
@@ -181,7 +181,8 @@ public class ItemsList : MonoBehaviour
             int itemIndex = itemIndexOnTop + i;
             if (itemIndex < contentsItems.Count && i < shownItems) // TODO: No need to iterate all?
             {
-                uiItem._nameField.text = contentsItems[itemIndex];
+                Tuple<string,bool,bool,bool> item = contentsItems[itemIndex];
+                uiItem._nameField.text = item.Item1;
                 SetFocus(uiItem, itemIndex == selectedIndex);
                 if (itemIndex == selectedIndex)
                 {
@@ -191,10 +192,10 @@ public class ItemsList : MonoBehaviour
                     entrySelectArrow.localPosition = new Vector3(origArrowPos.x, targetArrowY.y, origArrowPos.z);
                 }
 
-                // Icons TODO
-                uiItem._unreadIcon.gameObject.SetActive(false);
-                uiItem._hudMarkerIcon.gameObject.SetActive(false);
-                uiItem._moreToExploreIcon.gameObject.SetActive(false);
+                // Icons
+                uiItem._hudMarkerIcon.gameObject.SetActive(item.Item3);
+                uiItem._unreadIcon.gameObject.SetActive(item.Item2);
+                uiItem._moreToExploreIcon.gameObject.SetActive(item.Item4);
                 
                 float listAlpha = 1f;
                 // This replicates the vanilla look, entries with index 6 (last), 5 and 4 have this alphas,

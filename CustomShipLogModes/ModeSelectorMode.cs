@@ -27,18 +27,17 @@ public class ModeSelectorMode : ShipLogMode
     private void UpdateAvailableModes()
     {
         // TODO: Something is missing here?
-        List<Tuple<ShipLogMode,string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes();
-        List<string> names = new List<string>();
+        List<Tuple<ShipLogMode,string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes(); 
         if (!modes.SequenceEqual(_modes))
         {
             _modes = modes;
-            CustomShipLogModes.Instance.ModHelper.Console.WriteLine("MODES COUNT=" +_modes.Count);
+
+            List<Tuple<string, bool, bool, bool>> items = new();
             for (var i = 0; i < _modes.Count; i++)
             {
-                names.Add(GetModeName(i));
+                items.Add(new Tuple<string, bool, bool, bool>(GetModeName(i), i % 2 == 0, i % 3 == 0, i % 4 == 0));
             }
-
-            _itemsList.contentsItems = names;
+            _itemsList.contentsItems = items;
         }
     }
 
