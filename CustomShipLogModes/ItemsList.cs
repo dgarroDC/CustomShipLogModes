@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace CustomShipLogModes;
@@ -14,8 +13,8 @@ namespace CustomShipLogModes;
 // TODO: API return id (or GO?) for new "UI list"? + API methods for all actions  
 public class ItemsList : MonoBehaviour
 {
-    private static GameObject _prefab; // TODO: Only one and switch? Although we want to allow any customization
-    private static ShipLogMapMode _original;
+    private static GameObject _prefab;
+    private static Transform _commonParent;
 
     private const int TotalUIItems = 14;
     private const int TotalUIItemsWithDescriptionField = 7; // One more could fit, but this is the vanilla way
@@ -26,7 +25,6 @@ public class ItemsList : MonoBehaviour
     public CanvasGroupAnimator entryMenuAnimator;
     public RectTransform entrySelectArrow;
     public Text nameField;
-    public FontAndLanguageController fontAndLanguageController; // TODO: Do we really need this? Not used?
     public Image photo;
     public Text questionMark;
     public ShipLogEntryDescriptionField descriptionField;
@@ -42,11 +40,10 @@ public class ItemsList : MonoBehaviour
     // TODO: Let other mods know when is this ready?
     public static void CreatePrefab(ShipLogMapMode mapMode)
     {
-        _original = mapMode;
         GameObject prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
         prefab.name = "ItemsList";
         ItemsList itemsList = prefab.AddComponent<ItemsList>();
-        itemsList.oneShotSource = _original._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
+        itemsList.oneShotSource = mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
 
         // Copy serialized fields from MapMode TODO: Just store map mode?
         ShipLogMapMode mapModeCopy = prefab.GetComponent<ShipLogMapMode>();
@@ -56,14 +53,12 @@ public class ItemsList : MonoBehaviour
         itemsList.questionMark = mapModeCopy._questionMark;
         itemsList.entrySelectArrow = mapModeCopy._entrySelectArrow;
         itemsList.nameField = mapModeCopy._nameField;
-        itemsList.fontAndLanguageController = mapModeCopy._fontAndLanguageController;
         itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from _original, same object
 
         // Init animations TODO: allow changing?
         itemsList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
         itemsList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
-        // nameField.font = Locator.GetUIStyleManager().GetShipLogFont(); // TODO: Probably not needed, but ShipLogMapMode does it, but it looks off...
         itemsList.nameField.text = ""; // NamePanelRoot/Name
 
         // Init entry list
@@ -89,7 +84,15 @@ public class ItemsList : MonoBehaviour
         // Destroy Map Mode specific stuff
         Destroy(mapModeCopy._scaleRoot.gameObject);
         Destroy(mapModeCopy._reticleAnimator.gameObject);
+        //TODO: Map Mode component
         
+        // Parent object for all item lists
+        GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
+        _commonParent = commonParentGo.transform;
+        _commonParent.parent = mapMode.transform.parent;
+        _commonParent.localScale = Vector3.one;
+        mapMode._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the modes!
+
         // Wait a frame before marking the prefab ready, so things are properly destroyed
         CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
         {
@@ -101,14 +104,15 @@ public class ItemsList : MonoBehaviour
     {
         CustomShipLogModes.Instance.ModHelper.Events.Unity.RunWhen(() => _prefab != null, () =>
         {
-            GameObject itemListModeGo = Instantiate(_prefab, _original.transform.position, _original.transform.rotation, _original.transform.parent);
-            _original._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode! TODO: Make a common parent object for that!
+            GameObject itemListModeGo = Instantiate(_prefab, _commonParent.parent);
+            itemListModeGo.transform.SetParent(_commonParent, true); // I would like to set the parent on Instantiate but idk
             ItemsList itemsList = itemListModeGo.GetComponent<ItemsList>();
             itemsList._usePhotoAndDescField = usePhotoAndDescField;
             callback.Invoke(itemListModeGo);
         });
     }
 
+    // TODO: We still need to move this
     public void Initialize()
     {
         ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>();

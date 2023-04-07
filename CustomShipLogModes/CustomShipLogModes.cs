@@ -86,13 +86,8 @@ public class CustomShipLogModes : ModBehaviour
     private void InitializeMode(ShipLogMode mode)
     {
         bool canvasActive = _shipLogController._shipLogCanvas.gameObject.activeSelf;
-        _shipLogController._shipLogCanvas.gameObject.SetActive(true);
-        Stopwatch sw = new Stopwatch();
-        sw.Start();
+        _shipLogController._shipLogCanvas.gameObject.SetActive(true); // I don't remember the point of this...
         mode.Initialize(_shipLogController._centerPromptList, _shipLogController._upperRightPromptList, _shipLogController._oneShotSource);
-        
-        sw.Stop();
-        ModHelper.Console.WriteLine("Elapsed INIT " + mode+": "+sw.ElapsedMilliseconds);
         _shipLogController._shipLogCanvas.gameObject.SetActive(canvasActive);
     }
 
