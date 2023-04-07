@@ -26,7 +26,6 @@ public class ModeSelectorMode : ShipLogMode
 
     private void UpdateAvailableModes()
     {
-        // TODO: Something is missing here?
         List<Tuple<ShipLogMode,string>> modes = CustomShipLogModes.Instance.GetAvailableNamedModes(); 
         if (!modes.SequenceEqual(_modes))
         {

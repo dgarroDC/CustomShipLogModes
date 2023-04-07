@@ -34,7 +34,6 @@ public class ItemsList : MonoBehaviour
     // public?
     private bool _usePhotoAndDescField;
 
-    // TODO: Let other mods know when is this ready?
     public static void CreatePrefab(ShipLogMapMode mapMode)
     {
         // Wait a frame so the entry list item template is destroyed (otherwise issues with icons?)
@@ -156,21 +155,6 @@ public class ItemsList : MonoBehaviour
         }
     }
 
-    // TODO: The checks should be done on navigating... Remove this method
-    protected void SetEntryFocus(int index)
-    {
-        if (index == -1)
-        {
-            index = contentsItems.Count - 1; // Important to use the item list here, not the entry list!!!
-        }
-        else if (index == contentsItems.Count)
-        {
-            index = 0;
-        }
-        selectedIndex = index;
-    }
-
-    // TODO: Test with 0, 1 items: this._entrySelectArrow.gameObject.SetActive(list.Count > 0);
     private void UpdateListUI()
     {
         // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
@@ -224,6 +208,9 @@ public class ItemsList : MonoBehaviour
                 uiItem.gameObject.SetActive(false);
             }
         }
+
+        // Make sure to hide the arrow if no items are available
+        entrySelectArrow.gameObject.SetActive(contentsItems.Count > 0);
     }
 
     private void SetFocus(ShipLogEntryListItem item, bool focus)
@@ -238,25 +225,31 @@ public class ItemsList : MonoBehaviour
         }
     }
     
-    public bool UpdateList()
+    public int UpdateList()
     {
-        bool selectionChanged = false;
+        int selectionChange  = 0;
 
         if (contentsItems.Count >= 2)
         {
-            int selectionChange = listNavigator.GetSelectionChange(); // TODO: Return this or boolean to user (although it could just check if selected changed
+            selectionChange = listNavigator.GetSelectionChange();
             if (selectionChange != 0)
             {
-                selectionChanged = true;
-                SetEntryFocus(selectedIndex + selectionChange);
-                // Don't play sound in SetEntryFocus to avoid playing it in some situations
+                selectedIndex += selectionChange;
+                if (selectedIndex == -1)
+                {
+                    selectedIndex = contentsItems.Count - 1;
+                }
+                else if (selectedIndex == contentsItems.Count)
+                {
+                    selectedIndex = 0;
+                }
                 oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
             }
         }
 
         UpdateListUI();
 
-        return selectionChanged;
+        return selectionChange;
     }
 
     public void SetName(string nameValue)
