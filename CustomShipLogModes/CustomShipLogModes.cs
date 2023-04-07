@@ -73,6 +73,7 @@ public class CustomShipLogModes : ModBehaviour
         ItemsList.Make(false, modeSelectorModeGo =>
         {
             _modeSelectorMode = modeSelectorModeGo.AddComponent<ModeSelectorMode>();
+            _modeSelectorMode.name = nameof(ModeSelectorMode);
             InitializeMode(_modeSelectorMode); // We don't add this mode to _modes, so initialize it here
         });
     }

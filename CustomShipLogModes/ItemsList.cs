@@ -5,10 +5,7 @@ using UnityEngine.UI;
 
 namespace CustomShipLogModes;
 
-// TODO: Check this._listItems[j].Reset();??? _hasFocus for example
 // TODO: ShipLogEntryDescriptionFieldUtils : GetNext, Reset, ???
-// TODO: Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode/EntryMenu/PhotoRoot/MarkHUDRoot/
-
 // Heavily based on ShipLogMapMode
 // TODO: API return id (or GO?) for new "UI list"? + API methods for all actions  
 public class ItemsList : MonoBehaviour
@@ -65,8 +62,7 @@ public class ItemsList : MonoBehaviour
             itemsList.nameField.text = ""; // NamePanelRoot/Name
 
             // Init entry list
-            ShipLogEntryListItem[] oldListItems =
-                mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
+            ShipLogEntryListItem[] oldListItems = mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
             itemsList.listItems = new List<ShipLogEntryListItem>();
             // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
             for (int i = 0; i < oldListItems.Length; i++)
@@ -88,6 +84,7 @@ public class ItemsList : MonoBehaviour
             // Destroy Map Mode specific stuff
             Destroy(mapModeCopy._scaleRoot.gameObject);
             Destroy(mapModeCopy._reticleAnimator.gameObject);
+            Destroy(mapModeCopy._markOnHUDPromptRoot.gameObject); // TODO: Keep this?
             Destroy(mapModeCopy);
 
             // Parent object for all item lists
