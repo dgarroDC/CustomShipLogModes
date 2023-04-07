@@ -84,7 +84,7 @@ public class ItemsList : MonoBehaviour
         // Destroy Map Mode specific stuff
         Destroy(mapModeCopy._scaleRoot.gameObject);
         Destroy(mapModeCopy._reticleAnimator.gameObject);
-        //TODO: Map Mode component
+        Destroy(mapModeCopy);
         
         // Parent object for all item lists
         GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
@@ -108,41 +108,28 @@ public class ItemsList : MonoBehaviour
             itemListModeGo.transform.SetParent(_commonParent, true); // I would like to set the parent on Instantiate but idk
             ItemsList itemsList = itemListModeGo.GetComponent<ItemsList>();
             itemsList._usePhotoAndDescField = usePhotoAndDescField;
+            if (!usePhotoAndDescField)
+            {
+                // TODO: Changeable?
+                itemsList.HidePhotoAndDescField();
+            }
             callback.Invoke(itemListModeGo);
         });
     }
 
-    // TODO: We still need to move this
-    public void Initialize()
+    public void HidePhotoAndDescField()
     {
-        ShipLogMapMode mapMode = gameObject.GetComponent<ShipLogMapMode>();
-
-        // TODO: Changeable?
-        if (!_usePhotoAndDescField)
-        {
-            // Hide photo (root) and expand entry list horizontally
-            Transform photoRoot = mapMode._photoRoot;
-            photoRoot.gameObject.SetActive(false);
-            // idk this seems to work
-            RectTransform entryListRoot = (RectTransform)mapMode._entryListRoot.parent;
-            entryListRoot.anchorMax = new Vector2(1, 1);
-            entryListRoot.offsetMax = new Vector2(0, 0);
+        // Hide photo (root) and expand entry list horizontally
+        photo.transform.parent.gameObject.SetActive(false);
+        // idk this seems to work
+        RectTransform entryListRoot = (RectTransform)listItems[0].transform.parent.parent;
+        entryListRoot.anchorMax = new Vector2(1, 1);
+        entryListRoot.offsetMax = new Vector2(0, 0);
             
-            // Expand vertically because we don't currently use description field
-            // Magic number to match the bottom line with the description field, idk how to properly calculate it
-            RectTransform entryMenu = entryListRoot.parent as RectTransform; // Could also get from mapMode._entryMenuAnimator
-            entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594);
-        }
-        else
-        {
-            // Don't start with Map Mode's last viewed image (although the implementer could just cover this...)
-            Texture2D texture = Texture2D.blackTexture;
-            photo.sprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-            photo.gameObject.SetActive(false);
-            questionMark.gameObject.SetActive(false);
-        }
-        
-        Destroy(mapMode);
+        // Expand vertically because we don't currently use description field
+        // Magic number to match the bottom line with the description field, idk how to properly calculate it
+        RectTransform entryMenu = entryListRoot.parent as RectTransform; // Could also get from mapMode._entryMenuAnimator
+        entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594);
     }
 
     public void Open()
