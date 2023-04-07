@@ -40,63 +40,68 @@ public class ItemsList : MonoBehaviour
     // TODO: Let other mods know when is this ready?
     public static void CreatePrefab(ShipLogMapMode mapMode)
     {
-        GameObject prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
-        prefab.name = "ItemsList";
-        ItemsList itemsList = prefab.AddComponent<ItemsList>();
-        itemsList.oneShotSource = mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
-
-        // Copy serialized fields from MapMode TODO: Just store map mode?
-        ShipLogMapMode mapModeCopy = prefab.GetComponent<ShipLogMapMode>();
-        itemsList.mapModeAnimator = mapModeCopy._mapModeAnimator;
-        itemsList.entryMenuAnimator = mapModeCopy._entryMenuAnimator;
-        itemsList.photo = mapModeCopy._photo;
-        itemsList.questionMark = mapModeCopy._questionMark;
-        itemsList.entrySelectArrow = mapModeCopy._entrySelectArrow;
-        itemsList.nameField = mapModeCopy._nameField;
-        itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from _original, same object
-
-        // Init animations TODO: allow changing?
-        itemsList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-        itemsList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
-
-        itemsList.nameField.text = ""; // NamePanelRoot/Name
-
-        // Init entry list
-        ShipLogEntryListItem[] oldListItems = mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
-        itemsList.listItems = new List<ShipLogEntryListItem>();
-        // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
-        for (int i = 0; i < oldListItems.Length; i++)
-        {
-            // This are already disabled it seems, that's good, we don't want to call Update()
-            // _animAlpha is already 1f
-            if (i < TotalUIItems)
-            {
-                itemsList.listItems.Add(oldListItems[i]);
-            }
-            else
-            {
-                Destroy(oldListItems[i].gameObject);
-            }
-        }
-
-        itemsList.listNavigator = prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
-        
-        // Destroy Map Mode specific stuff
-        Destroy(mapModeCopy._scaleRoot.gameObject);
-        Destroy(mapModeCopy._reticleAnimator.gameObject);
-        Destroy(mapModeCopy);
-        
-        // Parent object for all item lists
-        GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
-        _commonParent = commonParentGo.transform;
-        _commonParent.parent = mapMode.transform.parent;
-        _commonParent.localScale = Vector3.one;
-        mapMode._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the modes!
-
-        // Wait a frame before marking the prefab ready, so things are properly destroyed
+        // Wait a frame so the entry list item template is destroyed (otherwise issues with icons?)
         CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
         {
-            _prefab = prefab;
+            GameObject prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
+            prefab.name = "ItemsList";
+            ItemsList itemsList = prefab.AddComponent<ItemsList>();
+            itemsList.oneShotSource = mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
+
+            // Copy serialized fields from MapMode TODO: Just store map mode?
+            ShipLogMapMode mapModeCopy = prefab.GetComponent<ShipLogMapMode>();
+            itemsList.mapModeAnimator = mapModeCopy._mapModeAnimator;
+            itemsList.entryMenuAnimator = mapModeCopy._entryMenuAnimator;
+            itemsList.photo = mapModeCopy._photo;
+            itemsList.questionMark = mapModeCopy._questionMark;
+            itemsList.entrySelectArrow = mapModeCopy._entrySelectArrow;
+            itemsList.nameField = mapModeCopy._nameField;
+            itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from _original, same object
+
+            // Init animations TODO: allow changing?
+            itemsList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
+            itemsList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
+
+            itemsList.nameField.text = ""; // NamePanelRoot/Name
+
+            // Init entry list
+            ShipLogEntryListItem[] oldListItems =
+                mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
+            itemsList.listItems = new List<ShipLogEntryListItem>();
+            // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
+            for (int i = 0; i < oldListItems.Length; i++)
+            {
+                // This are already disabled it seems, that's good, we don't want to call Update()
+                // _animAlpha is already 1f
+                if (i < TotalUIItems)
+                {
+                    itemsList.listItems.Add(oldListItems[i]);
+                }
+                else
+                {
+                    Destroy(oldListItems[i].gameObject);
+                }
+            }
+
+            itemsList.listNavigator = prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
+
+            // Destroy Map Mode specific stuff
+            Destroy(mapModeCopy._scaleRoot.gameObject);
+            Destroy(mapModeCopy._reticleAnimator.gameObject);
+            Destroy(mapModeCopy);
+
+            // Parent object for all item lists
+            GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
+            _commonParent = commonParentGo.transform;
+            _commonParent.parent = mapMode.transform.parent;
+            _commonParent.localScale = Vector3.one;
+            mapMode._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the modes!
+
+            // Wait a frame before marking the prefab ready, so things are properly destroyed
+            CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
+            {
+                _prefab = prefab;
+            });
         });
     }
 
@@ -193,8 +198,8 @@ public class ItemsList : MonoBehaviour
                 }
 
                 // Icons
-                uiItem._hudMarkerIcon.gameObject.SetActive(item.Item3);
-                uiItem._unreadIcon.gameObject.SetActive(item.Item2);
+                uiItem._hudMarkerIcon.gameObject.SetActive(item.Item2);
+                uiItem._unreadIcon.gameObject.SetActive(item.Item3);
                 uiItem._moreToExploreIcon.gameObject.SetActive(item.Item4);
                 
                 float listAlpha = 1f;

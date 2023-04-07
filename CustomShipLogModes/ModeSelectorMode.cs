@@ -35,7 +35,7 @@ public class ModeSelectorMode : ShipLogMode
             List<Tuple<string, bool, bool, bool>> items = new();
             for (var i = 0; i < _modes.Count; i++)
             {
-                items.Add(new Tuple<string, bool, bool, bool>(GetModeName(i), i % 2 == 0, i % 3 == 0, i % 4 == 0));
+                items.Add(new Tuple<string, bool, bool, bool>(GetModeName(i), false, false, false));
             }
             _itemsList.contentsItems = items;
         }
