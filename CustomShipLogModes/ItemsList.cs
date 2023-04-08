@@ -5,9 +5,9 @@ using UnityEngine.UI;
 
 namespace CustomShipLogModes;
 
-// TODO: ShipLogEntryDescriptionFieldUtils : GetNext, Reset, ???
 // Heavily based on ShipLogMapMode
 // TODO: API return id (or GO?) for new "UI list"? + API methods for all actions  
+// TODO: Better name?
 public class ItemsList : MonoBehaviour
 {
     private static GameObject _prefab;
@@ -52,7 +52,7 @@ public class ItemsList : MonoBehaviour
             itemsList.questionMark = mapModeCopy._questionMark;
             itemsList.entrySelectArrow = mapModeCopy._entrySelectArrow;
             itemsList.nameField = mapModeCopy._nameField;
-            itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from _original, same object
+            itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from mapMode, same object
 
             // Init animations TODO: allow changing?
             itemsList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
@@ -92,6 +92,10 @@ public class ItemsList : MonoBehaviour
             _commonParent.parent = mapMode.transform.parent;
             _commonParent.localScale = Vector3.one;
             mapMode._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the modes!
+
+            // Add enough room for arbitrary text in the description field
+            RectTransform factList = itemsList.descriptionField._factListItems[0].transform.parent as RectTransform;
+            factList.offsetMax = new Vector2(0, 1_000_000);
 
             // Wait a frame before marking the prefab ready, so things are properly destroyed
             CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
@@ -140,7 +144,6 @@ public class ItemsList : MonoBehaviour
 
         if (_usePhotoAndDescField)
         {
-            descriptionField.SetText("TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT TEST TEXT");
             descriptionField.SetVisible(true);
         }
     }
@@ -244,6 +247,12 @@ public class ItemsList : MonoBehaviour
                     selectedIndex = 0;
                 }
                 oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
+                
+                DescriptionFieldClear();
+                for (int i = 0; i < selectedIndex*2; i++)
+                {
+                    DescriptionFieldGetNextItem().DisplayText("ITEM NUMBER " + i);
+                }
             }
         }
 
@@ -255,5 +264,38 @@ public class ItemsList : MonoBehaviour
     public void SetName(string nameValue)
     {
         nameField.text = nameValue;
+    }
+
+    public void DescriptionFieldClear()
+    {
+        // Very similar to SetText but without text...
+        descriptionField.ResetListPos();
+        descriptionField._link = null;
+        descriptionField._entry = null;
+        descriptionField._displayCount = 0;
+        foreach (ShipLogFactListItem item in descriptionField._factListItems)
+        {
+            item.Clear();
+        }
+    }
+
+    public ShipLogFactListItem DescriptionFieldGetNextItem()
+    {
+        int nextIndex = descriptionField._displayCount;
+        descriptionField._displayCount++;
+        if (nextIndex == descriptionField._factListItems.Length)
+        {
+            // Create a new item, in vanilla there are 10 but a mod could use more, we don't have the template so use the 0
+            ShipLogFactListItem newItem = Instantiate(descriptionField._factListItems[0], descriptionField._factListItems[0].transform.parent);
+            newItem.name = "FactListItem_" + nextIndex;
+            Array.Resize(ref descriptionField._factListItems, nextIndex + 1);
+            descriptionField._factListItems[nextIndex] = newItem;
+            // newItem.RegisterWithFontAndLanguageController(descriptionField._fontAndLanguageController); // just in case...
+            // TODO: NRE next ShipLogEntryDescriptionField update???
+            // TODO: Patch DisplayText DisplayFacts, to clear the rest!
+        }
+        ShipLogFactListItem nextItem = descriptionField._factListItems[nextIndex];
+        nextItem.DisplayText(string.Empty);
+        return nextItem;
     }
 }
