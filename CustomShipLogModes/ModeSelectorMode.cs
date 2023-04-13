@@ -13,7 +13,7 @@ public class ModeSelectorMode : ShipLogMode
 
     private List<Tuple<ShipLogMode,string>> _modes = new();
 
-    private ItemsList _itemsList;
+    private ShipLogItemList _itemList;
 
     private ScreenPromptList _upperRightPromptList;
     private OWAudioSource _oneShotSource;
@@ -36,7 +36,7 @@ public class ModeSelectorMode : ShipLogMode
             {
                 items.Add(new Tuple<string, bool, bool, bool>(GetModeName(i), false, false, false));
             }
-            _itemsList.contentsItems = items;
+            _itemList.contentsItems = items;
         }
     }
 
@@ -50,8 +50,8 @@ public class ModeSelectorMode : ShipLogMode
         _upperRightPromptList = upperRightPromptList;
         _oneShotSource = oneShotSource;
         
-        _itemsList = GetComponent<ItemsList>();
-        _itemsList.SetName(Name);
+        _itemList = GetComponent<ShipLogItemList>();
+        _itemList.SetName(Name);
 
         SetupPrompts();
     }
@@ -75,13 +75,13 @@ public class ModeSelectorMode : ShipLogMode
         }
 
         _selectPrompt.SetVisibility(true); // This is always possible I guess?
-        _selectPrompt.SetText("Select " + GetModeName(_itemsList.selectedIndex));
+        _selectPrompt.SetText("Select " + GetModeName(_itemList.selectedIndex));
     }
 
     // TODO: Review removed modes, etc. Index still working?
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
-        _itemsList.Open();
+        _itemList.Open();
 
         // Yes, I'm using this sound for this, but it actually sounds similar to the vanilla modes enter sounds
         _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
@@ -98,7 +98,7 @@ public class ModeSelectorMode : ShipLogMode
 
     public override void ExitMode()
     {
-        _itemsList.Close();
+        _itemList.Close();
 
         PromptManager promptManager = Locator.GetPromptManager();
         promptManager.RemoveScreenPrompt(_closePrompt);
@@ -107,7 +107,7 @@ public class ModeSelectorMode : ShipLogMode
 
     public override void UpdateMode()
     {
-        _itemsList.UpdateList();
+        _itemList.UpdateList();
         
         // Just in case a mode was disabled/added/renamed, do we really need to check this now?
         UpdateAvailableModes();
@@ -120,7 +120,7 @@ public class ModeSelectorMode : ShipLogMode
         }
         if (Input.IsNewlyPressed(Input.Action.SelectMode))
         {
-            CustomShipLogModes.Instance.RequestChangeMode(_modes[_itemsList.selectedIndex].Item1);
+            CustomShipLogModes.Instance.RequestChangeMode(_modes[_itemList.selectedIndex].Item1);
         }
     }
 

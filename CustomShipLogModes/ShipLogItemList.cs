@@ -7,8 +7,7 @@ namespace CustomShipLogModes;
 
 // Heavily based on ShipLogMapMode
 // TODO: API return id (or GO?) for new "UI list"? + API methods for all actions  
-// TODO: Better name?
-public class ItemsList : MonoBehaviour
+public class ShipLogItemList : MonoBehaviour
 {
     private static GameObject _prefab;
     private static Transform _commonParent;
@@ -27,8 +26,8 @@ public class ItemsList : MonoBehaviour
     public ShipLogEntryDescriptionField descriptionField;
 
     public int selectedIndex;
-    public List<ShipLogEntryListItem> listItems; // TODO: Rename uiItems?
-    public List<Tuple<string, bool, bool, bool>> contentsItems = new(); // TODO: Rename listItems?
+    public List<ShipLogEntryListItem> uiItems;
+    public List<Tuple<string, bool, bool, bool>> contentsItems = new();
     public ListNavigator listNavigator;
 
     // public?
@@ -41,36 +40,35 @@ public class ItemsList : MonoBehaviour
         {
             GameObject prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
             prefab.name = "ItemsList";
-            ItemsList itemsList = prefab.AddComponent<ItemsList>();
-            itemsList.oneShotSource = mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
+            ShipLogItemList itemList = prefab.AddComponent<ShipLogItemList>();
+            itemList.oneShotSource = mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
 
             // Copy serialized fields from MapMode TODO: Just store map mode?
             ShipLogMapMode mapModeCopy = prefab.GetComponent<ShipLogMapMode>();
-            itemsList.mapModeAnimator = mapModeCopy._mapModeAnimator;
-            itemsList.entryMenuAnimator = mapModeCopy._entryMenuAnimator;
-            itemsList.photo = mapModeCopy._photo;
-            itemsList.questionMark = mapModeCopy._questionMark;
-            itemsList.entrySelectArrow = mapModeCopy._entrySelectArrow;
-            itemsList.nameField = mapModeCopy._nameField;
-            itemsList.descriptionField = mapModeCopy._descriptionField; // This could also be from mapMode, same object
+            itemList.mapModeAnimator = mapModeCopy._mapModeAnimator;
+            itemList.entryMenuAnimator = mapModeCopy._entryMenuAnimator;
+            itemList.photo = mapModeCopy._photo;
+            itemList.questionMark = mapModeCopy._questionMark;
+            itemList.entrySelectArrow = mapModeCopy._entrySelectArrow;
+            itemList.nameField = mapModeCopy._nameField;
+            itemList.descriptionField = mapModeCopy._descriptionField; // This could also be from mapMode, same object
 
             // Init animations TODO: allow changing?
-            itemsList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-            itemsList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
+            itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
+            itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
-            itemsList.nameField.text = ""; // NamePanelRoot/Name
+            itemList.nameField.text = ""; // NamePanelRoot/Name
 
             // Init entry list
             ShipLogEntryListItem[] oldListItems = mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
-            itemsList.listItems = new List<ShipLogEntryListItem>();
-            // TODO: Only do for Total... Destroy the rest? Make sure it's ok to instantiate the prefab on same frame
+            itemList.uiItems = new List<ShipLogEntryListItem>();
             for (int i = 0; i < oldListItems.Length; i++)
             {
                 // This are already disabled it seems, that's good, we don't want to call Update()
                 // _animAlpha is already 1f
                 if (i < TotalUIItems)
                 {
-                    itemsList.listItems.Add(oldListItems[i]);
+                    itemList.uiItems.Add(oldListItems[i]);
                 }
                 else
                 {
@@ -78,7 +76,7 @@ public class ItemsList : MonoBehaviour
                 }
             }
 
-            itemsList.listNavigator = prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
+            itemList.listNavigator = prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
 
             // Destroy Map Mode specific stuff
             Destroy(mapModeCopy._scaleRoot.gameObject);
@@ -94,7 +92,7 @@ public class ItemsList : MonoBehaviour
             mapMode._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the modes!
 
             // Add enough room for arbitrary text in the description field
-            RectTransform factList = itemsList.descriptionField._factListItems[0].transform.parent as RectTransform;
+            RectTransform factList = itemList.descriptionField._factListItems[0].transform.parent as RectTransform;
             factList.offsetMax = new Vector2(0, 1_000_000);
 
             // Wait a frame before marking the prefab ready, so things are properly destroyed
@@ -111,12 +109,12 @@ public class ItemsList : MonoBehaviour
         {
             GameObject itemListModeGo = Instantiate(_prefab, _commonParent.parent);
             itemListModeGo.transform.SetParent(_commonParent, true); // I would like to set the parent on Instantiate but idk
-            ItemsList itemsList = itemListModeGo.GetComponent<ItemsList>();
-            itemsList._usePhotoAndDescField = usePhotoAndDescField;
+            ShipLogItemList itemList = itemListModeGo.GetComponent<ShipLogItemList>();
+            itemList._usePhotoAndDescField = usePhotoAndDescField;
             if (!usePhotoAndDescField)
             {
                 // TODO: Changeable?
-                itemsList.HidePhotoAndDescField();
+                itemList.HidePhotoAndDescField();
             }
             callback.Invoke(itemListModeGo);
         });
@@ -127,7 +125,7 @@ public class ItemsList : MonoBehaviour
         // Hide photo (root) and expand entry list horizontally
         photo.transform.parent.gameObject.SetActive(false);
         // idk this seems to work
-        RectTransform entryListRoot = (RectTransform)listItems[0].transform.parent.parent;
+        RectTransform entryListRoot = (RectTransform)uiItems[0].transform.parent.parent;
         entryListRoot.anchorMax = new Vector2(1, 1);
         entryListRoot.offsetMax = new Vector2(0, 0);
             
@@ -164,9 +162,9 @@ public class ItemsList : MonoBehaviour
         int shownItems = _usePhotoAndDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
         int lastSelectable = 4; // Scroll after that  // TODO: More for without desc field?
         int itemIndexOnTop = selectedIndex <= lastSelectable ? 0 : selectedIndex - lastSelectable;
-        for (int i = 0; i < listItems.Count; i++)
+        for (int i = 0; i < uiItems.Count; i++)
         {
-            ShipLogEntryListItem uiItem = listItems[i];
+            ShipLogEntryListItem uiItem = uiItems[i];
             int itemIndex = itemIndexOnTop + i;
             if (itemIndex < contentsItems.Count && i < shownItems) // TODO: No need to iterate all?
             {
@@ -247,12 +245,6 @@ public class ItemsList : MonoBehaviour
                     selectedIndex = 0;
                 }
                 oneShotSource.PlayOneShot(AudioType.ShipLogMoveBetweenEntries);
-                
-                DescriptionFieldClear();
-                for (int i = 0; i < selectedIndex*2; i++)
-                {
-                    DescriptionFieldGetNextItem().DisplayText("ITEM NUMBER " + i);
-                }
             }
         }
 

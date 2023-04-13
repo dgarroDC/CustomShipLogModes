@@ -68,9 +68,9 @@ public class CustomShipLogModes : ModBehaviour
             }
         }
 
-        ItemsList.CreatePrefab(GetMapMode());
+        ShipLogItemList.CreatePrefab(GetMapMode());
         // Create mod selector mode
-        ItemsList.Make(false, modeSelectorModeGo =>
+        ShipLogItemList.Make(false, modeSelectorModeGo =>
         {
             _modeSelectorMode = modeSelectorModeGo.AddComponent<ModeSelectorMode>();
             _modeSelectorMode.name = nameof(ModeSelectorMode);
