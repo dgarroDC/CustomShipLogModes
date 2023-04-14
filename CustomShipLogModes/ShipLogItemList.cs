@@ -52,6 +52,10 @@ public class ShipLogItemList : MonoBehaviour
             itemList.entrySelectArrow = mapModeCopy._entrySelectArrow;
             itemList.nameField = mapModeCopy._nameField;
             itemList.descriptionField = mapModeCopy._descriptionField; // This could also be from mapMode, same object
+            
+            // By default both disabled
+            itemList.questionMark.gameObject.SetActive(false);
+            itemList.photo.gameObject.SetActive(false);
 
             // Init animations TODO: allow changing?
             itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
