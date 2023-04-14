@@ -107,7 +107,7 @@ public class ShipLogItemList : MonoBehaviour
         });
     }
 
-    public static void Make(bool usePhotoAndDescField, Action<GameObject> callback)
+    public static void Make(bool usePhotoAndDescField, Action<MonoBehaviour> callback)
     {
         CustomShipLogModes.Instance.ModHelper.Events.Unity.RunWhen(() => _prefab != null, () =>
         {
@@ -120,7 +120,7 @@ public class ShipLogItemList : MonoBehaviour
                 // TODO: Changeable?
                 itemList.HidePhotoAndDescField();
             }
-            callback.Invoke(itemListModeGo);
+            callback.Invoke(itemList);
         });
     }
 

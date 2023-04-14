@@ -12,63 +12,63 @@ public class CustomShipLogModesAPI : ICustomShipLogModesAPI
         CustomShipLogModes.Instance.AddMode(mode, isEnabledSupplier, nameSupplier);
     }
 
-    public void ItemListMake(bool usePhotoAndDescField, Action<GameObject> callback)
+    public void ItemListMake(bool usePhotoAndDescField, Action<MonoBehaviour> callback)
     {
         ShipLogItemList.Make(usePhotoAndDescField, callback);
     }
 
-    public void ItemListOpen(GameObject itemList)
+    public void ItemListOpen(MonoBehaviour itemList)
     {
-        itemList.GetComponent<ShipLogItemList>().Open();
+        ((ShipLogItemList)itemList).Open();
     }
 
-    public void ItemListClose(GameObject itemList)
+    public void ItemListClose(MonoBehaviour itemList)
     {
-        itemList.GetComponent<ShipLogItemList>().Close();
+        ((ShipLogItemList)itemList).Close();
     }
 
-    public int ItemListUpdateList(GameObject itemList)
+    public int ItemListUpdateList(MonoBehaviour itemList)
     {
-        return itemList.GetComponent<ShipLogItemList>().UpdateList();
+        return ((ShipLogItemList)itemList).UpdateList();
     }
 
-    public void ItemListSetName(GameObject itemList, string nameValue)
+    public void ItemListSetName(MonoBehaviour itemList, string nameValue)
     {
-        itemList.GetComponent<ShipLogItemList>().SetName(nameValue);
+        ((ShipLogItemList)itemList).SetName(nameValue);
     }
 
-    public void ItemListSetItems(GameObject itemList, List<Tuple<string, bool, bool, bool>> items)
+    public void ItemListSetItems(MonoBehaviour itemList, List<Tuple<string, bool, bool, bool>> items)
     {
-        itemList.GetComponent<ShipLogItemList>().contentsItems = items;
+        ((ShipLogItemList)itemList).contentsItems = items;
     }
 
-    public int ItemListGetSelectedIndex(GameObject itemList)
+    public int ItemListGetSelectedIndex(MonoBehaviour itemList)
     { 
-        return itemList.GetComponent<ShipLogItemList>().selectedIndex;
+        return ((ShipLogItemList)itemList).selectedIndex;
     }
 
-    public void ItemListSetSelectedIndex(GameObject itemList, int index)
+    public void ItemListSetSelectedIndex(MonoBehaviour itemList, int index)
     {
-        itemList.GetComponent<ShipLogItemList>().selectedIndex = index;
+        ((ShipLogItemList)itemList).selectedIndex = index;
     }
 
-    public Image ItemListGetPhoto(GameObject itemList)
+    public Image ItemListGetPhoto(MonoBehaviour itemList)
     {
-        return itemList.GetComponent<ShipLogItemList>().photo;
+        return ((ShipLogItemList)itemList).photo;
     }
 
-    public Text ItemListGetQuestionMark(GameObject itemList)
+    public Text ItemListGetQuestionMark(MonoBehaviour itemList)
     {
-        return itemList.GetComponent<ShipLogItemList>().questionMark;
+        return ((ShipLogItemList)itemList).questionMark;
     }
 
-    public void ItemListDescriptionFieldClear(GameObject itemList)
+    public void ItemListDescriptionFieldClear(MonoBehaviour itemList)
     {
-        itemList.GetComponent<ShipLogItemList>().DescriptionFieldClear();
+        ((ShipLogItemList)itemList).DescriptionFieldClear();
     }
 
-    public ShipLogFactListItem ItemListDescriptionFieldGetNextItem(GameObject itemList)
+    public ShipLogFactListItem ItemListDescriptionFieldGetNextItem(MonoBehaviour itemList)
     {
-        return itemList.GetComponent<ShipLogItemList>().DescriptionFieldGetNextItem();
+        return ((ShipLogItemList)itemList).DescriptionFieldGetNextItem();
     }
 }

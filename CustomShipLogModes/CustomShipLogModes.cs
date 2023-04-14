@@ -70,9 +70,9 @@ public class CustomShipLogModes : ModBehaviour
 
         ShipLogItemList.CreatePrefab(GetMapMode());
         // Create mod selector mode
-        ShipLogItemList.Make(false, modeSelectorModeGo =>
+        ShipLogItemList.Make(false, itemList =>
         {
-            _modeSelectorMode = modeSelectorModeGo.AddComponent<ModeSelectorMode>();
+            _modeSelectorMode = itemList.gameObject.AddComponent<ModeSelectorMode>();
             _modeSelectorMode.name = nameof(ModeSelectorMode);
             InitializeMode(_modeSelectorMode); // We don't add this mode to _modes, so initialize it here
         });
