@@ -10,10 +10,11 @@ public class ModeSelectorMode : ShipLogMode
 {
     // TODO: Translation
     public const string Name = "Select Mode";
+    
+    public ICustomShipLogModesAPI API;
+    public MonoBehaviour itemList;
 
     private List<Tuple<ShipLogMode,string>> _modes = new();
-
-    private ShipLogItemList _itemList;
 
     private ScreenPromptList _upperRightPromptList;
     private OWAudioSource _oneShotSource;
@@ -36,7 +37,7 @@ public class ModeSelectorMode : ShipLogMode
             {
                 items.Add(new Tuple<string, bool, bool, bool>(GetModeName(i), false, false, false));
             }
-            _itemList.contentsItems = items;
+            API.ItemListSetItems(itemList, items);
         }
     }
 
@@ -50,8 +51,7 @@ public class ModeSelectorMode : ShipLogMode
         _upperRightPromptList = upperRightPromptList;
         _oneShotSource = oneShotSource;
         
-        _itemList = GetComponent<ShipLogItemList>();
-        _itemList.SetName(Name);
+        API.ItemListSetName(itemList, Name);
 
         SetupPrompts();
     }
@@ -75,13 +75,13 @@ public class ModeSelectorMode : ShipLogMode
         }
 
         _selectPrompt.SetVisibility(true); // This is always possible I guess?
-        _selectPrompt.SetText("Select " + GetModeName(_itemList.selectedIndex));
+        _selectPrompt.SetText("Select " + GetModeName(API.ItemListGetSelectedIndex(itemList)));
     }
 
     // TODO: Review removed modes, etc. Index still working?
     public override void EnterMode(string entryID = "", List<ShipLogFact> revealQueue = null)
     {
-        _itemList.Open();
+        API.ItemListOpen(itemList);
 
         // Yes, I'm using this sound for this, but it actually sounds similar to the vanilla modes enter sounds
         _oneShotSource.PlayOneShot(AudioType.Ghost_Laugh);
@@ -98,7 +98,7 @@ public class ModeSelectorMode : ShipLogMode
 
     public override void ExitMode()
     {
-        _itemList.Close();
+        API.ItemListClose(itemList);
 
         PromptManager promptManager = Locator.GetPromptManager();
         promptManager.RemoveScreenPrompt(_closePrompt);
@@ -107,7 +107,7 @@ public class ModeSelectorMode : ShipLogMode
 
     public override void UpdateMode()
     {
-        _itemList.UpdateList();
+        API.ItemListUpdateList(itemList);
         
         // Just in case a mode was disabled/added/renamed, do we really need to check this now?
         UpdateAvailableModes();
@@ -120,7 +120,7 @@ public class ModeSelectorMode : ShipLogMode
         }
         if (Input.IsNewlyPressed(Input.Action.SelectMode))
         {
-            CustomShipLogModes.Instance.RequestChangeMode(_modes[_itemList.selectedIndex].Item1);
+            CustomShipLogModes.Instance.RequestChangeMode(_modes[API.ItemListGetSelectedIndex(itemList)].Item1);
         }
     }
 

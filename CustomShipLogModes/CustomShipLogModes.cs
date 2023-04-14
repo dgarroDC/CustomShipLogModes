@@ -73,6 +73,11 @@ public class CustomShipLogModes : ModBehaviour
         ShipLogItemList.Make(false, itemList =>
         {
             _modeSelectorMode = itemList.gameObject.AddComponent<ModeSelectorMode>();
+            // There's no necessity of using the API instead of ShipLogItemList directly,
+            // but this is better so it could be used as an example
+            _modeSelectorMode.API = (ICustomShipLogModesAPI)GetApi();
+            _modeSelectorMode.itemList = itemList;
+            
             _modeSelectorMode.name = nameof(ModeSelectorMode);
             InitializeMode(_modeSelectorMode); // We don't add this mode to _modes, so initialize it here
         });
