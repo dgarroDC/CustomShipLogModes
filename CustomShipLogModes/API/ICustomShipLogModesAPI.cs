@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace CustomShipLogModes;
+namespace CustomShipLogModes.API;
 
 public interface ICustomShipLogModesAPI
 {

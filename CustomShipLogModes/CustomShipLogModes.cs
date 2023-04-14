@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using CustomShipLogModes.API;
 using HarmonyLib;
 using OWML.Common;
 using OWML.ModHelper;
@@ -70,13 +71,13 @@ public class CustomShipLogModes : ModBehaviour
 
         ShipLogItemList.CreatePrefab(GetMapMode());
         // Create mod selector mode
-        ShipLogItemList.Make(false, itemList =>
+        // There's no necessity of using the API instead of ShipLogItemList directly,
+        // but this is better so it could be used as an example
+        ICustomShipLogModesAPI api = (ICustomShipLogModesAPI)GetApi();
+        api.ItemListMake(false, itemList =>
         {
             _modeSelectorMode = itemList.gameObject.AddComponent<ModeSelectorMode>();
-            // There's no necessity of using the API instead of ShipLogItemList directly,
-            // but this is better so it could be used as an example
-            _modeSelectorMode.API = (ICustomShipLogModesAPI)GetApi();
-            _modeSelectorMode.itemList = itemList;
+            _modeSelectorMode.itemList = new ItemListWrapper(api, itemList);
             
             _modeSelectorMode.name = nameof(ModeSelectorMode);
             InitializeMode(_modeSelectorMode); // We don't add this mode to _modes, so initialize it here
