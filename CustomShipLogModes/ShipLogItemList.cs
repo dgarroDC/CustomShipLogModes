@@ -6,7 +6,6 @@ using UnityEngine.UI;
 namespace CustomShipLogModes;
 
 // Heavily based on ShipLogMapMode
-// TODO: API return id (or GO?) for new "UI list"? + API methods for all actions  
 public class ShipLogItemList : MonoBehaviour
 {
     private static GameObject _prefab;
