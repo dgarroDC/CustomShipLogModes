@@ -109,7 +109,6 @@ public class CustomShipLogModes : ModBehaviour
 
         if (_shipLogController != null)
         {
-            ModHelper.Console.WriteLine("ADDED AFTER:"+mode);
             // Vanilla modes are already initialized in ShipLogController.LateInitialize
             InitializeMode(mode);
         }
@@ -240,13 +239,6 @@ public class CustomShipLogModes : ModBehaviour
         {
             // Just in case someone disabled the current custom mode, trapping us there!
             ChangeMode(GetDefaultMode());
-        }
-        
-        if (OWInput.IsNewlyPressed(InputLibrary.autopilot))
-        {
-            ShipLogMode a  = _modeSelectorMode.gameObject.AddComponent<ModeA>();
-            int count = _modes.Count;
-            AddMode(a, () => true, () => "Mode " +  count);
         }
     }
 
