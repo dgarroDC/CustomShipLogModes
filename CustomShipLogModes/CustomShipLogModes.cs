@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using CustomShipLogModes.API;
 using HarmonyLib;
 using OWML.Common;
 using OWML.ModHelper;
@@ -13,7 +15,7 @@ public class CustomShipLogModes : ModBehaviour
 {
     public static CustomShipLogModes Instance;
 
-    private ModSelectorMode _modSelectorMode;
+    private ModeSelectorMode _modeSelectorMode;
     private Dictionary<ShipLogMode, Tuple<Func<bool>, Func<string>>> _modes = new();
    
     private bool _cycleModes;
@@ -48,6 +50,8 @@ public class CustomShipLogModes : ModBehaviour
     
     public void Setup(ShipLogController shipLogController)
     {
+        // We know: Vanilla modes already initialized this frame
+
         SetupPrompts();
 
         if (_shipLogController != null)
@@ -64,26 +68,32 @@ public class CustomShipLogModes : ModBehaviour
                 InitializeMode(mode);
             }
         }
-        
+
+        ShipLogItemList.CreatePrefab(GetMapMode());
         // Create mod selector mode
-        GameObject mapModeGo = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/MapMode");
-        GameObject selectorModeGo = Instantiate(mapModeGo, mapModeGo.transform.position, mapModeGo.transform.rotation, mapModeGo.transform.parent);
-        selectorModeGo.name = nameof(ModSelectorMode);
-        _shipLogController._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the mode selector!
-        _modSelectorMode = selectorModeGo.AddComponent<ModSelectorMode>();
-        InitializeMode(_modSelectorMode); // We don't add this mode to _modes, so initialize it here
+        // There's no necessity of using the API instead of ShipLogItemList directly,
+        // but this is better so it could be used as an example
+        ICustomShipLogModesAPI api = (ICustomShipLogModesAPI)GetApi();
+        api.ItemListMake(false, itemList =>
+        {
+            _modeSelectorMode = itemList.gameObject.AddComponent<ModeSelectorMode>();
+            _modeSelectorMode.itemList = new ItemListWrapper(api, itemList);
+            
+            _modeSelectorMode.name = nameof(ModeSelectorMode);
+            InitializeMode(_modeSelectorMode); // We don't add this mode to _modes, so initialize it here
+        });
     }
 
     private void SetupPrompts()
     {
-        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModSelectorMode.Name);
+        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModeSelectorMode.Name);
         _modeSwapPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SwapMode), ""); // The text is updated
     }
 
     private void InitializeMode(ShipLogMode mode)
     {
         bool canvasActive = _shipLogController._shipLogCanvas.gameObject.activeSelf;
-        _shipLogController._shipLogCanvas.gameObject.SetActive(true);
+        _shipLogController._shipLogCanvas.gameObject.SetActive(true); // I don't remember the point of this...
         mode.Initialize(_shipLogController._centerPromptList, _shipLogController._upperRightPromptList, _shipLogController._oneShotSource);
         _shipLogController._shipLogCanvas.gameObject.SetActive(canvasActive);
     }
@@ -108,7 +118,7 @@ public class CustomShipLogModes : ModBehaviour
     {
         // We don't want modes to directly change the mode because that could cause
         // for example closing ana reopening the selector in the same frame because postfix
-        // TODO: Add this to API?
+        // TODO: Add this to API? Check is the current mode?
         if (_requestedChaneMode == null)
         {
             _requestedChaneMode = mode;
@@ -124,12 +134,12 @@ public class CustomShipLogModes : ModBehaviour
 
         // TODO: weird position (Back to Map Mode -> Select Mode)
         // If Map Mode doesn't allow swap because no Rumor Mode is disabled, we still want to be able to open custom modes...
-        bool swapAllowed = currentMode.AllowModeSwap() || currentMode == _shipLogController._mapMode;
+        bool swapAllowed = currentMode.AllowModeSwap() || currentMode == GetMapMode();
         bool enoughModes = customModes.Count >= 1;
         _modeSelectorPrompt.SetVisibility(swapAllowed && enoughModes);
 
         ScreenPrompt swapPrompt = null;
-        if (currentMode == _shipLogController._mapMode)
+        if (currentMode == GetMapMode())
         {
             // We know UpdateMode already happened so no need to worry about Map Mode hiding the prompt 
             swapPrompt = (currentMode as ShipLogMapMode)._detectiveModePrompt;
@@ -187,14 +197,14 @@ public class CustomShipLogModes : ModBehaviour
 
     private ShipLogMode SwapVanillaMode(ShipLogMode currentMode)
     {
-        if (currentMode == _shipLogController._detectiveMode)
+        if (currentMode == GetDetectiveMode())
         {
-            return _shipLogController._mapMode;
+            return GetMapMode();
         }
 
         if (PlayerData.GetDetectiveModeEnabled())
         {
-            return _shipLogController._detectiveMode;
+            return GetDetectiveMode();
         }
 
         return null;
@@ -214,8 +224,8 @@ public class CustomShipLogModes : ModBehaviour
         {
             // We know AllowModeSwap is true (and other necessary conditions because of UpdatePromptsVisibility),
             // except in Map Mode case (see special case)
-            _modSelectorMode.SetGoBackMode(currentMode);
-            ChangeMode(_modSelectorMode);
+            _modeSelectorMode.SetGoBackMode(currentMode);
+            ChangeMode(_modeSelectorMode);
             return;
         }
         if (_nextMode != null && Input.IsNewlyPressed(Input.Action.SwapMode))
@@ -234,7 +244,7 @@ public class CustomShipLogModes : ModBehaviour
 
     private ShipLogMode GetDefaultMode()
     {
-        return PlayerData.GetDetectiveModeEnabled() ? _shipLogController._detectiveMode : _shipLogController._mapMode;
+        return PlayerData.GetDetectiveModeEnabled() ? GetDetectiveMode() : GetMapMode();
     }
 
     private void ChangeMode(ShipLogMode enteringMode)
@@ -267,11 +277,22 @@ public class CustomShipLogModes : ModBehaviour
         // Add vanilla modes
         if (PlayerData.GetDetectiveModeEnabled())
         {
-            modes.Add(new Tuple<ShipLogMode, string>(_shipLogController._detectiveMode, UITextLibrary.GetString(UITextType.LogRumorModePrompt)));
+            modes.Add(new Tuple<ShipLogMode, string>(GetDetectiveMode(), UITextLibrary.GetString(UITextType.LogRumorModePrompt)));
         }
-        modes.Add(new Tuple<ShipLogMode, string>(_shipLogController._mapMode, UITextLibrary.GetString(UITextType.LogMapModePrompt)));
+        // TODO: Setting to disable Map Mode (might be good for future journal mod)
+        modes.Add(new Tuple<ShipLogMode, string>(GetMapMode(), UITextLibrary.GetString(UITextType.LogMapModePrompt)));
 
         return modes;
+    }
+
+    public ShipLogMapMode GetMapMode()
+    {
+        return (ShipLogMapMode)_shipLogController?._mapMode;
+    }
+
+    public ShipLogDetectiveMode GetDetectiveMode()
+    {
+        return (ShipLogDetectiveMode)_shipLogController?._detectiveMode;
     }
 
     private List<ShipLogMode> GetCustomModes()

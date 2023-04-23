@@ -3,7 +3,7 @@
 namespace CustomShipLogModes;
 
 // Stolen from my mod Suit Log
-public class ListNavigator
+public class ListNavigator : MonoBehaviour
 {
     private float _pressedUpTimer;
     private float _pressedDownTimer;
