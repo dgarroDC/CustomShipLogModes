@@ -23,6 +23,8 @@ public class ShipLogItemList : MonoBehaviour
     public Image photo;
     public Text questionMark;
     public ShipLogEntryDescriptionField descriptionField;
+    public GameObject markOnHUDPromptRoot;
+    public ScreenPromptList markHUDPromptList;
 
     public int selectedIndex;
     public List<ShipLogEntryListItem> uiItems;
@@ -50,11 +52,14 @@ public class ShipLogItemList : MonoBehaviour
             itemList.questionMark = mapModeCopy._questionMark;
             itemList.entrySelectArrow = mapModeCopy._entrySelectArrow;
             itemList.nameField = mapModeCopy._nameField;
-            itemList.descriptionField = mapModeCopy._descriptionField; // This could also be from mapMode, same object
-            
-            // By default both disabled
+            itemList.descriptionField = mapModeCopy._descriptionField;
+            itemList.markOnHUDPromptRoot = mapModeCopy._markOnHUDPromptRoot;
+            itemList.markHUDPromptList = mapModeCopy._markHUDPromptList;
+
+            // By default disabled
             itemList.questionMark.gameObject.SetActive(false);
             itemList.photo.gameObject.SetActive(false);
+            itemList.MarkHUDRootEnable(false);
 
             // Init animations TODO: allow changing?
             itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
@@ -84,7 +89,6 @@ public class ShipLogItemList : MonoBehaviour
             // Destroy Map Mode specific stuff
             Destroy(mapModeCopy._scaleRoot.gameObject);
             Destroy(mapModeCopy._reticleAnimator.gameObject);
-            Destroy(mapModeCopy._markOnHUDPromptRoot.gameObject); // TODO: Keep this?
             Destroy(mapModeCopy);
 
             // Parent object for all item lists
@@ -292,5 +296,15 @@ public class ShipLogItemList : MonoBehaviour
         ShipLogFactListItem nextItem = descriptionField._factListItems[nextIndex];
         nextItem.DisplayText(string.Empty);
         return nextItem;
+    }
+
+    public void MarkHUDRootEnable(bool enable)
+    {
+        markOnHUDPromptRoot.gameObject.SetActive(enable);
+    }
+
+    public ScreenPromptList MarkHUDGetPromptList()
+    {
+        return markHUDPromptList;
     }
 }

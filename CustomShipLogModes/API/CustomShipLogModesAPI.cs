@@ -71,4 +71,14 @@ public class CustomShipLogModesAPI : ICustomShipLogModesAPI
     {
         return ((ShipLogItemList)itemList).DescriptionFieldGetNextItem();
     }
+
+    public void ItemListMarkHUDRootEnable(MonoBehaviour itemList, bool enable)
+    {
+        ((ShipLogItemList)itemList).MarkHUDRootEnable(enable);
+    }
+
+    public ScreenPromptList ItemListMarkHUDGetPromptList(MonoBehaviour itemList)
+    {
+        return ((ShipLogItemList)itemList).MarkHUDGetPromptList();
+    }
 }
