@@ -258,3 +258,15 @@ As the field is shared by others, it may be a good idea to always clear it when 
 Displays the next `ShipLogFactListItem` with an empty string (intended to be changed by you). It also returns that newly displayed `ShipLogFactListItem`, that you would use to display any text you want (you could use the `DisplayText` method of the item for example).
 
 The game starts with 10 `ShipLogFactListItem` objects by default, that are enabled or disabled depending on how many facts are to be displayed. This number is enough for all vanilla situations, but you may use more items. Don't worry, `DescriptionFieldGetNextItem` creates a new object if all existing items are already displayed.
+
+---
+`public void MarkHUDRootEnable(bool enable)`
+
+Makes the "Mark on HUD" rectangle object active or inactive depending on the parameter (this object starts disabled by default). This root includes the border, background and the screen prompts that are displayed in the lower part of the photo or question mark square (and so it could cover part of the photo), all these elements are made visible or invsible using this method.
+
+---
+`public ScreenPromptList MarkHUDGetPromptList()`
+
+Returns the `ScreenPromptList` of the "Mark on HUD" rectangle, initially empty (no prompts), so you could add your prompts.
+
+In the vanilla Map Mode this is used for the "Mark Location on HUD"/"Remove HUD Marker" prompt, but of course you could use it for whatever you want.
