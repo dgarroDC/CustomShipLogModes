@@ -154,16 +154,20 @@ As you can see in the API, besides the `AddMode` method there are many more meth
 
 To create one, use the `ItemListMake` method like this:
 ```csharp
-API.ItemListMake(true, itemList =>
+API.ItemListMake(true, true, itemList =>
 {
     var itemListWrapper = new ItemListWrapper(API, itemList);
     // Now we can use the list with the wrapper!
 });
 ```
 
-The first parameter is the `bool usePhotoAndDescField`,with this you can choose to show or not the square used for the photo (or question mark) and the description field (the one below the list that in Rumor Mode and Map Mode shows the facts of an entry). When this is `false`, the area of the list of items is expanded horizontally and vertically to use the space left (the mode selector does this). This cannot be changed once the list is created (at least not currently), consider using two separate item lists if you want one that shows the additional UI elements and one without them.
+The first and second parameters are the `bool usePhoto` and `bool useDescField`, with these you can choose to show or not the square used for the photo (or question mark) and the description field (the one below the list that in Rumor Mode and Map Mode shows the facts of an entry). 
 
-The second parameter is the `Action<MonoBehaviour> callback`. This is used to return the created item list, but it does it with a callback instead of a return value because when you call this method there might be some pending initialization that this mod has to do and may be unable to return the item list on the frame you request it.
+When one of these is `false`, the area of the rest of the elements is expanded horizontally or vertically to use the space left (the mode selector does this). This cannot be changed once the list is created (at least not currently), consider using different separate item lists if you want one that shows different additional UI elements. 
+
+Also note that if you use the photo and not the description field, the photo wouldn't be square anymore and the sprite could be stretched, so in that case you could set the [preserveAspect](https://docs.unity3d.com/2019.1/Documentation/ScriptReference/UI.Image-preserveAspect.html) property of the `Image` (the one returned by `GetPhoto`). This could even be useful if you use both the photo and the description field but the sprite you use isn't an square.
+
+The third parameter is the `Action<MonoBehaviour> callback`. This is used to return the created item list, but it does it with a callback instead of a return value because when you call this method there might be some pending initialization that this mod has to do and may be unable to return the item list on the frame you request it.
 
 Once you have the item list (represent by a `MonoBehaviour`) received by your callback, you could use it in the other API `ItemList*` methods (they all take the `MonoBehaviour itemList` as a first parameter). However, like the example above shows, you can also use the `ItemListWrapper`, just copy the [ItemListWrapper.cs](CustomShipLogModes/API/ItemListWrapper.cs) file and create one passing the API and the item list. That way, instead of using the list like this:
 ```csharp
@@ -182,28 +186,30 @@ itemListWrapper.UpdateList();
 
 Note that your "own" *MOST* of the UI elements of the list, so you could modify it in any way you want (for example, changing colors or sizes) without affecting other mods or the base game, although the API doesn't currently facilitates these actions. However, the description field is the same object shared by the vanilla Rumor Mode and Map Mode, as well as other item lists created with this mod, so take this into consideration. In the future, this could be changed and a copy of the description field could be copied to each of the item lists created by this mod.  
 
-The rest of this section describes the `ItemListWrapper` methods, each of them corresponds one of the API `ItemList*` methods (all except the `ItemListMake` method that we already covered).
+There's also a variation of the `ItemListMake` method that just take one `bool usePhotoAndDescField` instead of the two separated. Calling with `true` is the same as using the other method with both parameters with `true`, same with `false`. 
+
+The rest of this section describes the `ItemListWrapper` methods, each of them corresponds one of the API `ItemList*` methods (all except the `ItemListMake` methods that we already covered).
 
 ---
 `public void Open()`
 
 Displays the item list UI  the Ship Log computer screen. The elements are displayed using animations. You could use this method for example in the `EnterMode` of your custom mode.
 
-Opening the list also includes opening the description field if the item list was created with `usePhotoAndDescField = true`, it uses the `SetVisible` method of the shared vanilla `ShipLogEntryDescriptionField`.
+Opening the list also includes opening the description field if the item list was created with `useDecField = true`, it uses the `SetVisible` method of the shared vanilla `ShipLogEntryDescriptionField`.
 
 ---
 `public void Close()`
 
 Hides the item list UI, also with animations. You could use this method for example in the `ExitMode` of your custom mode.
 
-Opening the list also includes closing the description field if the item list was created with `usePhotoAndDescField = true`, it uses the `SetVisible` method of the shared vanilla `ShipLogEntryDescriptionField`.
+Opening the list also includes closing the description field if the item list was created with `useDecField = true`, it uses the `SetVisible` method of the shared vanilla `ShipLogEntryDescriptionField`.
 
 ---
 `public int UpdateList()`
 
 If there are at least two items, takes the user input to navigate the list, changing the selected item in that case. The returned `int` value indicates how much the index of the selected item changed (`-1` means that the selection was changed to the item above, `0` that the selection wasn't changed, and `1` that the selection was changed to the item below). You could use that value for example to know if you should display things in the description field or change the photo image.
 
-Additionally, and also very important, this method refreshes the UI of the list items, according to the available items, the selected index, their text and icons. Remember that the UI could show less items that the ones available: it shows up to **7** items if the list was created with `usePhotoAndDescField = true` (this is the same number of items that you see in the vanilla Map Mode) and **14** if `false`. When the user navigates the list the items are scrolled.
+Additionally, and also very important, this method refreshes the UI of the list items, according to the available items, the selected index, their text and icons. Remember that the UI could show less items that the ones available: it shows up to **7** items if the list was created with `useDecField = true` (this is the same number of items that you see in the vanilla Map Mode) and **14** if `false`. When the user navigates the list the items are scrolled.
 
 ---
 `public void SetName(string nameValue)`
@@ -238,12 +244,12 @@ This is the only way to change the index besides the user navigation in `UpdateL
 ---
 `public Image GetPhoto()`
 
-Returns the `Image` component of the object used to display images available if the item list was configured with `usePhotoAndDescField = true`. The object is disabled by default, you may enable it and set its sprite to any image you want.
+Returns the `Image` component of the object used to display images available if the item list was configured with `usePhoto = true`. The object is disabled by default, you may enable it and set its sprite to any image you want.
 
 ---
 `public Text GetQuestionMark()`
 
-Returns the `Text` component of the object used to display a text (by default an orange question mark that in vanilla is used for rumored entries) at the same space where the photo is, available if the item list was configured with `usePhotoAndDescField = true`. The object is disabled by default, you may enable if and set its sprite to any text you want (it doesn't have to necessarily be a question mark, it could be anything).
+Returns the `Text` component of the object used to display a text (by default an orange question mark that in vanilla is used for rumored entries) at the same space where the photo is, available if the item list was configured with `usePhoto = true`. The object is disabled by default, you may enable if and set its sprite to any text you want (it doesn't have to necessarily be a question mark, it could be anything).
 
 ---
 `public void DescriptionFieldClear()`
