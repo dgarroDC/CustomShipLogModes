@@ -186,7 +186,7 @@ itemListWrapper.UpdateList();
 
 Note that your "own" *MOST* of the UI elements of the list, so you could modify it in any way you want (for example, changing colors or sizes) without affecting other mods or the base game, although the API doesn't currently facilitates these actions. However, the description field is the same object shared by the vanilla Rumor Mode and Map Mode, as well as other item lists created with this mod, so take this into consideration. In the future, this could be changed and a copy of the description field could be copied to each of the item lists created by this mod.  
 
-There's also a variation of the `ItemListMake` method that just take one `bool usePhotoAndDescField` instead of the two separated. Calling with `true` is the same as using the other method with both parameters with `true`, same with `false`. 
+There's also a variation of the `ItemListMake` method that just take one `bool usePhotoAndDescField` instead of the two separated. Calling with `true` is the same as using the other method with both parameters with `true`, same with `false`. **This version of the method is deprecated and just kept for retro-compatibility.** 
 
 The rest of this section describes the `ItemListWrapper` methods, each of them corresponds one of the API `ItemList*` methods (all except the `ItemListMake` methods that we already covered).
 
