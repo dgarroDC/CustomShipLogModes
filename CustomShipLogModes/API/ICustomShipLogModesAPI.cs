@@ -9,6 +9,7 @@ public interface ICustomShipLogModesAPI
 {
     public void AddMode(ShipLogMode mode, Func<bool> isEnabledSupplier, Func<string> nameSupplier);
 
+    public void ItemListMake(bool usePhoto, bool useDescField, Action<MonoBehaviour> callback);
     public void ItemListMake(bool usePhotoAndDescField, Action<MonoBehaviour> callback);
     public void ItemListOpen(MonoBehaviour itemList);
     public void ItemListClose(MonoBehaviour itemList);

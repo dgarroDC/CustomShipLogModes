@@ -12,9 +12,15 @@ public class CustomShipLogModesAPI : ICustomShipLogModesAPI
         CustomShipLogModes.Instance.AddMode(mode, isEnabledSupplier, nameSupplier);
     }
 
+    public void ItemListMake(bool usePhoto, bool useDescField, Action<MonoBehaviour> callback)
+    {
+        ShipLogItemList.Make(usePhoto, useDescField, callback);
+    }
+
     public void ItemListMake(bool usePhotoAndDescField, Action<MonoBehaviour> callback)
     {
-        ShipLogItemList.Make(usePhotoAndDescField, callback);
+        // This is kept just for retro-compatibility
+        ItemListMake(usePhotoAndDescField, usePhotoAndDescField, callback);
     }
 
     public void ItemListOpen(MonoBehaviour itemList)

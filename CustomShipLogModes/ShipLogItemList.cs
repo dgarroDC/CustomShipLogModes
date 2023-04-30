@@ -31,8 +31,7 @@ public class ShipLogItemList : MonoBehaviour
     public List<Tuple<string, bool, bool, bool>> contentsItems = new();
     public ListNavigator listNavigator;
 
-    // public?
-    private bool _usePhotoAndDescField;
+    private bool _useDescField;
 
     public static void CreatePrefab(ShipLogMapMode mapMode)
     {
@@ -110,36 +109,43 @@ public class ShipLogItemList : MonoBehaviour
         });
     }
 
-    public static void Make(bool usePhotoAndDescField, Action<MonoBehaviour> callback)
+    public static void Make(bool usePhoto, bool useDescField, Action<MonoBehaviour> callback)
     {
         CustomShipLogModes.Instance.ModHelper.Events.Unity.RunWhen(() => _prefab != null, () =>
         {
             GameObject itemListModeGo = Instantiate(_prefab, _commonParent.parent);
             itemListModeGo.transform.SetParent(_commonParent, true); // I would like to set the parent on Instantiate but idk
             ShipLogItemList itemList = itemListModeGo.GetComponent<ShipLogItemList>();
-            itemList._usePhotoAndDescField = usePhotoAndDescField;
-            if (!usePhotoAndDescField)
+            itemList._useDescField = useDescField;
+            if (!usePhoto || !useDescField)
             {
                 // TODO: Changeable?
-                itemList.HidePhotoAndDescField();
+                itemList.HidePhotoOrDescField(usePhoto, useDescField);
             }
             callback.Invoke(itemList);
         });
     }
 
-    public void HidePhotoAndDescField()
+    public void HidePhotoOrDescField(bool usePhoto, bool useDescField)
     {
-        // Hide photo (root) and expand entry list horizontally
-        photo.transform.parent.gameObject.SetActive(false);
-        // idk this seems to work
         RectTransform entryListRoot = (RectTransform)uiItems[0].transform.parent.parent;
-        entryListRoot.anchorMax = new Vector2(1, 1);
-        entryListRoot.offsetMax = new Vector2(0, 0);
-            
-        // Expand vertically because we don't currently use description field
-        // Magic number to match the bottom line with the description field, idk how to properly calculate it
-        RectTransform entryMenu = entryListRoot.parent as RectTransform; // Could also get from mapMode._entryMenuAnimator
-        entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594);
+
+        if (!usePhoto)
+        {
+            // Hide photo (root) and expand entry list horizontally
+            photo.transform.parent.gameObject.SetActive(false);
+            // idk this seems to work
+            entryListRoot.anchorMax = new Vector2(1, 1);
+            entryListRoot.offsetMax = new Vector2(0, 0);
+        }
+
+        if (!useDescField)
+        {
+            // Expand vertically because we don't currently use description field
+            // Magic number to match the bottom line with the description field, idk how to properly calculate it
+            RectTransform entryMenu = entryListRoot.parent as RectTransform; // Could also get from mapMode._entryMenuAnimator
+            entryMenu.offsetMin = new Vector2(entryMenu.offsetMin.x, -594);
+        }
     }
 
     public void Open()
@@ -147,7 +153,7 @@ public class ShipLogItemList : MonoBehaviour
         mapModeAnimator.AnimateTo(1f, Vector3.one, 0.5f);
         entryMenuAnimator.AnimateTo(1f, Vector3.one, 0.3f);
 
-        if (_usePhotoAndDescField)
+        if (_useDescField)
         {
             descriptionField.SetVisible(true);
         }
@@ -157,7 +163,7 @@ public class ShipLogItemList : MonoBehaviour
     {
         mapModeAnimator.AnimateTo(0f, Vector3.one * 0.5f, 0.5f);
         entryMenuAnimator.AnimateTo(0f, new Vector3(1f, 0.01f, 1f), 0.3f);
-        if (_usePhotoAndDescField)
+        if (_useDescField)
         {
             descriptionField.SetVisible(false);
         }
@@ -166,7 +172,7 @@ public class ShipLogItemList : MonoBehaviour
     private void UpdateListUI()
     {
         // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
-        int shownItems = _usePhotoAndDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
+        int shownItems = _useDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
         int lastSelectable = 4; // Scroll after that  // TODO: More for without desc field?
         int itemIndexOnTop = selectedIndex <= lastSelectable ? 0 : selectedIndex - lastSelectable;
         for (int i = 0; i < uiItems.Count; i++)
