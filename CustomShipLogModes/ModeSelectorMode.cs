@@ -6,7 +6,6 @@ using UnityEngine;
 
 namespace CustomShipLogModes;
 
-// TODO: Start with selected mode
 public class ModeSelectorMode : ShipLogMode
 {
     // TODO: Translation
@@ -66,7 +65,7 @@ public class ModeSelectorMode : ShipLogMode
     private void UpdatePromptsVisibility()
     {
         // TODO: Translations
-        int goBackFind = _modes.FindIndex(m => m.Item1 == _goBackMode);
+        int goBackFind = GoBackModeIndex();
         bool canGoBack = goBackFind != -1;
         _closePrompt.SetVisibility(canGoBack);
         if (canGoBack)
@@ -88,12 +87,22 @@ public class ModeSelectorMode : ShipLogMode
         _prevEntryId = entryID;
 
         UpdateAvailableModes();
+        int goBackIndex = GoBackModeIndex();
+        if (goBackIndex != -1)
+        {
+            itemList.SetSelectedIndex(goBackIndex);
+        }
 
         UpdatePromptsVisibility(); // Just in case?
 
         PromptManager promptManager = Locator.GetPromptManager();
         promptManager.AddScreenPrompt(_closePrompt, _upperRightPromptList, TextAnchor.MiddleRight);
         promptManager.AddScreenPrompt(_selectPrompt, _upperRightPromptList, TextAnchor.MiddleRight);
+    }
+
+    private int GoBackModeIndex()
+    {
+        return _modes.FindIndex(m => m.Item1 == _goBackMode);
     }
 
     public override void ExitMode()
