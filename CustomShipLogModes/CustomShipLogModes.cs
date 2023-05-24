@@ -7,7 +7,6 @@ using CustomShipLogModes.API;
 using HarmonyLib;
 using OWML.Common;
 using OWML.ModHelper;
-using Steamworks;
 using UnityEngine;
 
 namespace CustomShipLogModes;
@@ -219,16 +218,8 @@ public class CustomShipLogModes : ModBehaviour
             _requestedChaneMode = null;
             return;
         }
-
-
         
-
         ShipLogMode currentMode = _shipLogController._currentMode;
-        
-        if (OWInput.GetInputMode() == InputMode.KeyboardInput)
-        {
-            currentMode.UpdateMode();
-        }
         if (_modeSelectorPrompt._isVisible && Input.IsNewlyPressed(Input.Action.OpenModeSelector))
         {
             // We know AllowModeSwap is true (and other necessary conditions because of UpdatePromptsVisibility),
@@ -240,8 +231,7 @@ public class CustomShipLogModes : ModBehaviour
         if (_nextMode != null && Input.IsNewlyPressed(Input.Action.SwapMode))
         {
             // Don't check _modeSwapPrompt._isVisible (because of vanilla cases)
-            ModHelper.Console.WriteLine("ABRIR?"+SteamUtils.ShowFloatingGamepadTextInput(
-                EFloatingGamepadTextInputMode.k_EFloatingGamepadTextInputModeModeSingleLine, 0, 0, 1280, 370));
+            ChangeMode(_nextMode);
             return;   
         }
 

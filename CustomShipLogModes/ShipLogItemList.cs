@@ -32,7 +32,6 @@ public class ShipLogItemList : MonoBehaviour
     public ListNavigator listNavigator;
 
     private bool _useDescField;
-    private bool _editing;
 
     public static void CreatePrefab(ShipLogMapMode mapMode)
     {
@@ -77,10 +76,6 @@ public class ShipLogItemList : MonoBehaviour
                 if (i < TotalUIItems)
                 {
                     itemList.uiItems.Add(oldListItems[i]);
-                    InputField inputField = oldListItems[i]._nameField.gameObject.AddComponent<InputField>();
-                    inputField.textComponent = oldListItems[i]._nameField;
-                    inputField.text = "Test...";
-                    inputField.enabled = false;
                 }
                 else
                 {
@@ -248,7 +243,7 @@ public class ShipLogItemList : MonoBehaviour
     {
         int selectionChange  = 0;
 
-        if (contentsItems.Count >= 2 && !_editing)
+        if (contentsItems.Count >= 2)
         {
             selectionChange = listNavigator.GetSelectionChange();
             if (selectionChange != 0)
@@ -268,41 +263,6 @@ public class ShipLogItemList : MonoBehaviour
 
         UpdateListUI();
 
-
-        // CustomShipLogModes.Instance.ModHelper.Console.WriteLine("HOLA?");
-
-        if (OWInput.IsNewlyPressed(InputLibrary.toolActionPrimary))
-        {
-            var inputField = descriptionField._factListItems[1]._text.GetComponent<InputField>(); //iItems[0]._nameField.GetComponent<InputField>();
-// VERTICAL LAYOUT GROUP DISABLED => HIDE ON TWO NLS?
-// idea: force expand height + not infinite panel (add to the mask thing?), sizedelta.y = 1 (for the last row...)
-            _editing = !_editing;
-            if (_editing)
-            {
-                Locator.GetMenuInputModule().EnableMouseInputs();
-                inputField.enabled = true;
-                CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
-                {
-                    inputField.text = contentsItems[selectedIndex].Item1;
-                    CustomShipLogModes.Instance.ModHelper.Console.WriteLine("HOLA");
-                    OWInput.ChangeInputMode(InputMode.KeyboardInput);
-                    inputField.ActivateInputField();
-                });
-            }
-            else
-            {
-                CustomShipLogModes.Instance.ModHelper.Console.WriteLine("CHAU");
-                OWInput.RestorePreviousInputs();
-                inputField.DeactivateInputField();
-                inputField.enabled = false;
-            }
-        }
-
-        // if (_editing)
-        // {
-        //     inputField.textComponent.SetLayoutDirty();
-        // }
-        
         return selectionChange;
     }
 
@@ -341,13 +301,6 @@ public class ShipLogItemList : MonoBehaviour
         }
         ShipLogFactListItem nextItem = descriptionField._factListItems[nextIndex];
         nextItem.DisplayText(string.Empty);
-        if (nextItem._text.GetComponent<InputField>() == null)
-        {
-            InputField inputField = nextItem._text.gameObject.AddComponent<InputField>();
-            inputField.textComponent = nextItem._text;
-            inputField.lineType = InputField.LineType.MultiLineNewline;
-            inputField.enabled = false;
-        }
         return nextItem;
     }
 
