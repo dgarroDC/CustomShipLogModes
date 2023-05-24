@@ -313,4 +313,15 @@ public class ShipLogItemList : MonoBehaviour
     {
         return markHUDPromptList;
     }
+
+    public int GetIndexUI(int index)
+    {
+        // This is copied from UpdateListUI()...
+        int shownItems = _useDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
+        int lastSelectable = 4;
+        int itemIndexOnTop = selectedIndex <= lastSelectable ? 0 : selectedIndex - lastSelectable;
+
+        int uiIndex = index - itemIndexOnTop;
+        return uiIndex < shownItems ? uiIndex : -1;
+    }
 }

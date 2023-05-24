@@ -87,4 +87,14 @@ public class CustomShipLogModesAPI : ICustomShipLogModesAPI
     {
         return ((ShipLogItemList)itemList).MarkHUDGetPromptList();
     }
+
+    public List<ShipLogEntryListItem> ItemListGetItemsUI(MonoBehaviour itemList)
+    {
+        return ((ShipLogItemList)itemList).uiItems;
+    }
+
+    public int ItemListGetIndexUI(MonoBehaviour itemList, int index)
+    {
+        return ((ShipLogItemList)itemList).GetIndexUI(index);
+    }
 }
