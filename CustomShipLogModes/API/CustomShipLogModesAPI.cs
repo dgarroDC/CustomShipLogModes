@@ -38,6 +38,11 @@ public class CustomShipLogModesAPI : ICustomShipLogModesAPI
         return ((ShipLogItemList)itemList).UpdateList();
     }
 
+    public void ItemListUpdateListUI(MonoBehaviour itemList)
+    {
+        ((ShipLogItemList)itemList).UpdateListUI();
+    }
+
     public void ItemListSetName(MonoBehaviour itemList, string nameValue)
     {
         ((ShipLogItemList)itemList).SetName(nameValue);

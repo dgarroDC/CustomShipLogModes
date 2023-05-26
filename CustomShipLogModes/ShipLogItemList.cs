@@ -169,7 +169,7 @@ public class ShipLogItemList : MonoBehaviour
         }
     }
 
-    private void UpdateListUI()
+    public void UpdateListUI()
     {
         // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
         int shownItems = _useDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
