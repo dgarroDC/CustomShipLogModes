@@ -30,6 +30,7 @@ public class ShipLogItemList : MonoBehaviour
     public List<ShipLogEntryListItem> uiItems;
     public List<Tuple<string, bool, bool, bool>> contentsItems = new();
     public ListNavigator listNavigator;
+    public List<Image> borderImages;
 
     private bool _useDescField;
 
@@ -41,7 +42,8 @@ public class ShipLogItemList : MonoBehaviour
             GameObject prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
             prefab.name = "ItemsList";
             ShipLogItemList itemList = prefab.AddComponent<ShipLogItemList>();
-            itemList.oneShotSource = mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
+            itemList.oneShotSource =
+                mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
 
             // Copy serialized fields from MapMode TODO: Just store map mode?
             ShipLogMapMode mapModeCopy = prefab.GetComponent<ShipLogMapMode>();
@@ -51,60 +53,92 @@ public class ShipLogItemList : MonoBehaviour
             itemList.questionMark = mapModeCopy._questionMark;
             itemList.entrySelectArrow = mapModeCopy._entrySelectArrow;
             itemList.nameField = mapModeCopy._nameField;
+            GameObject descriptionField = GameObject.Find("Ship_Body/Module_Cabin/Systems_Cabin/ShipLogPivot/ShipLog/ShipLogPivot/ShipLogCanvas/DescriptionField");
+            //descriptionField.GetComponent<ShipLogEntryDescriptionField>().enabled = true;
+            GameObject descriptionFieldClone = GameObject.Instantiate(descriptionField, descriptionField.transform.position, descriptionField.transform.rotation, itemList.transform);
+            descriptionFieldClone.transform.localPosition = descriptionField.transform.localPosition; // !!!
+            itemList.descriptionField = descriptionFieldClone.GetComponent<ShipLogEntryDescriptionField>();
             itemList.descriptionField = mapModeCopy._descriptionField;
-            itemList.markOnHUDPromptRoot = mapModeCopy._markOnHUDPromptRoot;
-            itemList.markHUDPromptList = mapModeCopy._markHUDPromptList;
-
-            // By default disabled
-            itemList.questionMark.gameObject.SetActive(false);
-            itemList.photo.gameObject.SetActive(false);
-            itemList.MarkHUDRootEnable(false);
-
-            // Init animations TODO: allow changing?
-            itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-            itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
-
-            itemList.nameField.text = ""; // NamePanelRoot/Name
-
-            // Init entry list
-            ShipLogEntryListItem[] oldListItems = mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
-            itemList.uiItems = new List<ShipLogEntryListItem>();
-            for (int i = 0; i < oldListItems.Length; i++)
-            {
-                // This are already disabled it seems, that's good, we don't want to call Update()
-                // _animAlpha is already 1f
-                if (i < TotalUIItems)
-                {
-                    itemList.uiItems.Add(oldListItems[i]);
-                }
-                else
-                {
-                    Destroy(oldListItems[i].gameObject);
-                }
-            }
-
-            itemList.listNavigator = prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
-
-            // Destroy Map Mode specific stuff
-            Destroy(mapModeCopy._scaleRoot.gameObject);
-            Destroy(mapModeCopy._reticleAnimator.gameObject);
-            Destroy(mapModeCopy);
-
-            // Parent object for all item lists
-            GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
-            _commonParent = commonParentGo.transform;
-            _commonParent.parent = mapMode.transform.parent;
-            _commonParent.localScale = Vector3.one;
-            mapMode._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the modes!
-
-            // Add enough room for arbitrary text in the description field
-            RectTransform factList = itemList.descriptionField._factListItems[0].transform.parent as RectTransform;
-            factList.offsetMax = new Vector2(0, 1_000_000);
-
-            // Wait a frame before marking the prefab ready, so things are properly destroyed
             CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
             {
-                _prefab = prefab;
+                itemList.markOnHUDPromptRoot = mapModeCopy._markOnHUDPromptRoot;
+                itemList.markHUDPromptList = mapModeCopy._markHUDPromptList;
+
+                // By default disabled
+                itemList.questionMark.gameObject.SetActive(false);
+                itemList.photo.gameObject.SetActive(false);
+                itemList.MarkHUDRootEnable(false);
+
+                // Init animations TODO: allow changing?
+                //   itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
+                //   itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
+
+                itemList.nameField.text = ""; // NamePanelRoot/Name
+
+                // Init entry list
+                ShipLogEntryListItem[] oldListItems =
+                    mapModeCopy._entryListRoot.GetComponentsInChildren<ShipLogEntryListItem>(true);
+                itemList.uiItems = new List<ShipLogEntryListItem>();
+                for (int i = 0; i < oldListItems.Length; i++)
+                {
+                    // This are already disabled it seems, that's good, we don't want to call Update()
+                    // _animAlpha is already 1f
+                    if (i < TotalUIItems)
+                    {
+                        itemList.uiItems.Add(oldListItems[i]);
+                    }
+                    else
+                    {
+                        Destroy(oldListItems[i].gameObject);
+                    }
+                }
+
+                itemList.listNavigator =
+                    prefab.AddComponent<ListNavigator>(); // idk why a component, so its copied to instances?
+
+                // Add border images (idk what I don't use mapModeCopy for all, maybe because items)
+                itemList.borderImages = new List<Image>();
+                itemList.borderImages.Add(itemList.nameField.transform.parent.Find("NameBorder").GetComponent<Image>());
+                itemList.borderImages.Add(mapModeCopy._photoRoot.Find("PhotoBorder")
+                    .GetComponent<Image>()); // or _photo -> parent
+                itemList.borderImages.Add(itemList.markOnHUDPromptRoot.transform.Find("MarkHUDPromptBorder")
+                    .GetComponent<Image>());
+                itemList.borderImages.Add(mapModeCopy._entryListRoot.transform.parent.Find("EntryBorder")
+                    .GetComponent<Image>()); // _entryListRoot is NOT EntryListRoot...
+                foreach (ShipLogEntryListItem item in itemList.uiItems)
+                {
+                    itemList.borderImages.Add(item._borderLine.GetComponent<Image>());
+                }
+
+                itemList.borderImages.Add(itemList.descriptionField.transform.Find("DescriptionBorder")
+                    .GetComponent<Image>());
+                itemList.borderImages.Add(itemList.descriptionField._scrollPromptRoot.transform
+                    .Find("ScrollPromptBorder")
+                    .GetComponent<Image>());
+                foreach (ShipLogFactListItem item in itemList.descriptionField._factListItems)
+                {
+                    itemList.borderImages.Add(item.transform.Find("EntryBorderLine").GetComponent<Image>());
+                }
+
+                // Destroy Map Mode specific stuff
+                Destroy(mapModeCopy._scaleRoot.gameObject);
+                Destroy(mapModeCopy._reticleAnimator.gameObject);
+                Destroy(mapModeCopy);
+
+                // Parent object for all item lists
+                GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
+                _commonParent = commonParentGo.transform;
+                _commonParent.parent = mapMode.transform.parent;
+                _commonParent.localScale = Vector3.one;
+                mapMode._upperRightPromptList.transform.parent
+                    .SetAsLastSibling(); // We want to see the prompts on top of the modes!
+
+                // Add enough room for arbitrary text in the description field
+                RectTransform factList = itemList.descriptionField._factListItems[0].transform.parent as RectTransform;
+                factList.offsetMax = new Vector2(0, 1_000_000);
+
+                // Wait a frame before marking the prefab ready, so things are properly destroyed
+                CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() => { _prefab = prefab; });
             });
         });
     }
@@ -295,6 +329,8 @@ public class ShipLogItemList : MonoBehaviour
             newItem.name = "FactListItem_" + nextIndex;
             Array.Resize(ref descriptionField._factListItems, nextIndex + 1);
             descriptionField._factListItems[nextIndex] = newItem;
+            // The border image has already the right color because of the copy, but we need to add it to the list for future color changes
+            borderImages.Add(newItem.transform.Find("EntryBorderLine").GetComponent<Image>());
             // newItem.RegisterWithFontAndLanguageController(descriptionField._fontAndLanguageController); // just in case...
             // TODO: NRE next ShipLogEntryDescriptionField update???
             // TODO: Patch DisplayText DisplayFacts, to clear the rest!
@@ -323,5 +359,13 @@ public class ShipLogItemList : MonoBehaviour
 
         int uiIndex = index - itemIndexOnTop;
         return uiIndex < shownItems ? uiIndex : -1;
+    }
+
+    public void SetBordersColor(Color borderColor)
+    {
+        foreach (Image borderImage in borderImages)
+        {
+            borderImage.color = borderColor;
+        }
     }
 }
