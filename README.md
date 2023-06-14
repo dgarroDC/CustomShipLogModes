@@ -212,6 +212,11 @@ If there are at least two items, takes the user input to navigate the list, chan
 Additionally, and also very important, this method refreshes the UI of the list items, according to the available items, the selected index, their text and icons. Remember that the UI could show less items that the ones available: it shows up to **7** items if the list was created with `useDecField = true` (this is the same number of items that you see in the vanilla Map Mode) and **14** if `false`. When the user navigates the list the items are scrolled.
 
 ---
+`public void UpdateListUI()`
+
+Similar to `UpdateList` but this just updates the UI, it doesn't take the user input to navigate the list (and doesn't return a value).
+
+---
 `public void SetName(string nameValue)`
 
 Changes the text showed above the list of items, by default it displays the empty string `""`. You could change it to display the name of your mode for example.
@@ -276,3 +281,13 @@ Makes the "Mark on HUD" rectangle object active or inactive depending on the par
 Returns the `ScreenPromptList` of the "Mark on HUD" rectangle, initially empty (no prompts), so you could add your prompts.
 
 In the vanilla Map Mode this is used for the "Mark Location on HUD"/"Remove HUD Marker" prompt, but of course you could use it for whatever you want.
+
+---
+`public List<ShipLogEntryListItem> GetItemsUI()`
+
+Returns the list of all `ShipLogEntryListItem` used to display the items in order from top to bottom. All UI items are returned, including the ones that aren't currently used to display elements, and in fact **14** items are always returned even if the description field is used (that only allows **7** items to be displayed at most), because the others items are never destroyed when creating the list (this detail isn't probably relevant to you but just in case).
+
+---
+`public int GetIndexUI(int index)`
+
+Returns the index of the UI item used to display the item with the given `index`, or `-1` if the item with `index` isn't currently displayed (because of scrolling). This could be combined with `GetItemsUI`. For example, `itemListWrapper.GetItemsUI()[itemListWrapper.GetIndexUI(itemListWrapper.GetSelectedIndex())]` returns the `ShipLogEntryListItem` of the currently selected item.
