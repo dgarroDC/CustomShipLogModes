@@ -60,9 +60,9 @@ public class ShipLogItemList : MonoBehaviour
             itemList.photo.gameObject.SetActive(false);
             itemList.MarkHUDRootEnable(false);
 
-            // Init animations TODO: allow changing?
-            itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-            itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
+            // Init animations TODO: THIS IS FAILING???
+            //itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
+            //itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
             itemList.nameField.text = ""; // NamePanelRoot/Name
 

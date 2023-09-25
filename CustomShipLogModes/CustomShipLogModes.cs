@@ -76,6 +76,7 @@ public class CustomShipLogModes : ModBehaviour
         ICustomShipLogModesAPI api = (ICustomShipLogModesAPI)GetApi();
         api.ItemListMake(false, itemList =>
         {
+            // TODO: The selection arrow isn't properly placed for some reason...
             _modeSelectorMode = itemList.gameObject.AddComponent<ModeSelectorMode>();
             _modeSelectorMode.itemList = new ItemListWrapper(api, itemList);
             
@@ -94,7 +95,8 @@ public class CustomShipLogModes : ModBehaviour
     {
         bool canvasActive = _shipLogController._shipLogCanvas.gameObject.activeSelf;
         _shipLogController._shipLogCanvas.gameObject.SetActive(true); // I don't remember the point of this...
-        mode.Initialize(_shipLogController._centerPromptList, _shipLogController._upperRightPromptList, _shipLogController._oneShotSource);
+        // TODO: These prompts would probably be invisible because they are part of the Map Mode...
+        mode.Initialize(_shipLogController._centerPromptList, _shipLogController._upperRightPromptListMap, _shipLogController._oneShotSource);
         _shipLogController._shipLogCanvas.gameObject.SetActive(canvasActive);
     }
 
@@ -313,8 +315,11 @@ public class CustomShipLogModes : ModBehaviour
     {
         // TODO: Review no detective enabled, it always defaults to map mode instead of last mode, probably nobody cares
         PromptManager promptManager = Locator.GetPromptManager();
-        promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
-        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptList, TextAnchor.MiddleRight);
+        // TODO: Prompt list for each custom mode?
+        promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptListMap, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptListDetective, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptListMap, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptListDetective, TextAnchor.MiddleRight);
         foreach (ShipLogMode mode in GetCustomModes())
         {
             mode.OnEnterComputer();
