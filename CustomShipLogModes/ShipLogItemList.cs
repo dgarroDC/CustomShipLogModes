@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using OWML.Common;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -54,6 +55,17 @@ public class ShipLogItemList : MonoBehaviour
             itemList.descriptionField = mapModeCopy._descriptionField;
             itemList.markOnHUDPromptRoot = mapModeCopy._markOnHUDPromptRoot;
             itemList.markHUDPromptList = mapModeCopy._markHUDPromptList;
+
+            try
+            {
+                itemList.photo.transform.parent.GetComponent<Image>().enabled = false;
+            }
+            catch (Exception e)
+            {
+                // Just in case this is removed in next hotfix:
+                // https://discord.com/channels/929708786027999262/929787137895854100/1156019963778314291 (Jeff)
+                CustomShipLogModes.Instance.ModHelper.Console.WriteLine("Couldn't disable mask image, ignoring: " + e, MessageType.Error);
+            }
 
             // By default disabled
             itemList.questionMark.gameObject.SetActive(false);
