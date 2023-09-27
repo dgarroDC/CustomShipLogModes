@@ -58,11 +58,11 @@ public class ShipLogItemList : MonoBehaviour
 
             try
             {
-                itemList.photo.transform.parent.GetComponent<Image>().enabled = false;
+                itemList.photo.transform.parent.GetComponent<WorldSpaceMask>().showMaskGraphic = false;
             }
             catch (Exception e)
             {
-                // Just in case this is removed in next hotfix:
+                // Just in case this is removed in next hotfix (but it will probably disable the graphic like here):
                 // https://discord.com/channels/929708786027999262/929787137895854100/1156019963778314291 (Jeff)
                 CustomShipLogModes.Instance.ModHelper.Console.WriteLine("Couldn't disable mask image, ignoring: " + e, MessageType.Error);
             }
