@@ -27,6 +27,8 @@ public class ShipLogItemList : MonoBehaviour
     public GameObject markOnHUDPromptRoot;
     public ScreenPromptList markHUDPromptList;
 
+    public UiSizeSetterRectTransform descriptionFieldSizeSetter;
+
     public int selectedIndex;
     public List<ShipLogEntryListItem> uiItems;
     public List<Tuple<string, bool, bool, bool>> contentsItems = new();
@@ -56,6 +58,8 @@ public class ShipLogItemList : MonoBehaviour
             itemList.markOnHUDPromptRoot = mapModeCopy._markOnHUDPromptRoot;
             itemList.markHUDPromptList = mapModeCopy._markHUDPromptList;
 
+            itemList.descriptionFieldSizeSetter = itemList.descriptionField.GetComponent<UiSizeSetterRectTransform>();
+
             try
             {
                 itemList.photo.transform.parent.GetComponent<WorldSpaceMask>().showMaskGraphic = false;
@@ -72,7 +76,7 @@ public class ShipLogItemList : MonoBehaviour
             itemList.photo.gameObject.SetActive(false); // TODO: Get parent?
             itemList.MarkHUDRootEnable(false);
 
-            // Init animations TODO: THIS IS FAILING???
+            // Init animations TODO: THIS IS FAILING??? Something about the mask?
             // itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
             // itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
@@ -184,6 +188,8 @@ public class ShipLogItemList : MonoBehaviour
 
         if (_useDescField)
         {
+            // TODO: Changeable?
+            descriptionFieldSizeSetter.DoResizeAction(UITextSize.SMALL);
             descriptionField.SetVisible(true);
         }
     }
@@ -195,6 +201,8 @@ public class ShipLogItemList : MonoBehaviour
         if (_useDescField)
         {
             descriptionField.SetVisible(false);
+            // Since this is shared (for now?), restore the size for vanilla...
+            descriptionFieldSizeSetter.DoResizeAction(PlayerData.GetTextSize());
         }
     }
 
