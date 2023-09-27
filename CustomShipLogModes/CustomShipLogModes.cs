@@ -77,7 +77,6 @@ public class CustomShipLogModes : ModBehaviour
         ICustomShipLogModesAPI api = (ICustomShipLogModesAPI)GetApi();
         api.ItemListMake(false, itemList =>
         {
-            // TODO: The selection arrow isn't properly placed for some reason...
             _modeSelectorMode = itemList.gameObject.AddComponent<ModeSelectorMode>();
             _modeSelectorMode.itemList = new ItemListWrapper(api, itemList);
             

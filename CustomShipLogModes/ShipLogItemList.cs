@@ -135,9 +135,12 @@ public class ShipLogItemList : MonoBehaviour
         {
             // Hide photo (root) and expand entry list horizontally
             questionMark.transform.parent.gameObject.SetActive(false); // photo need an extra parent now...
+            // Needed after OW patch 14, arrow no longer anchored to the right
+            Vector3 prevArrowPosition = entrySelectArrow.localPosition;
             // idk this seems to work
             entryListRoot.anchorMax = new Vector2(1, 1);
             entryListRoot.offsetMax = new Vector2(0, 0);
+            entrySelectArrow.localPosition = prevArrowPosition;
         }
 
         if (!useDescField)
