@@ -57,12 +57,12 @@ public class ShipLogItemList : MonoBehaviour
 
             // By default disabled
             itemList.questionMark.gameObject.SetActive(false);
-            itemList.photo.gameObject.SetActive(false);
+            itemList.photo.gameObject.SetActive(false); // TODO: Get parent?
             itemList.MarkHUDRootEnable(false);
 
             // Init animations TODO: THIS IS FAILING???
-            //itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
-            //itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
+            // itemList.mapModeAnimator.SetImmediate(0f, Vector3.one * 0.5f);
+            // itemList.entryMenuAnimator.SetImmediate(0f, new Vector3(1f, 0.01f, 1f));
 
             itemList.nameField.text = ""; // NamePanelRoot/Name
 
@@ -95,7 +95,8 @@ public class ShipLogItemList : MonoBehaviour
             _commonParent = commonParentGo.transform;
             _commonParent.parent = mapMode.transform.parent;
             _commonParent.localScale = Vector3.one;
-            mapMode._upperRightPromptList.transform.parent.SetAsLastSibling(); // We want to see the prompts on top of the modes!
+            // We want to see the prompts on top of the modes! Don't use the upper right one here, since it's the one for Map Mode
+            mapMode._centerPromptList.transform.parent.SetAsLastSibling();
 
             // Add enough room for arbitrary text in the description field
             RectTransform factList = itemList.descriptionField._factListItems[0].transform.parent as RectTransform;
@@ -133,7 +134,7 @@ public class ShipLogItemList : MonoBehaviour
         if (!usePhoto)
         {
             // Hide photo (root) and expand entry list horizontally
-            photo.transform.parent.gameObject.SetActive(false);
+            questionMark.transform.parent.gameObject.SetActive(false); // photo need an extra parent now...
             // idk this seems to work
             entryListRoot.anchorMax = new Vector2(1, 1);
             entryListRoot.offsetMax = new Vector2(0, 0);
@@ -295,7 +296,7 @@ public class ShipLogItemList : MonoBehaviour
             newItem.name = "FactListItem_" + nextIndex;
             Array.Resize(ref descriptionField._factListItems, nextIndex + 1);
             descriptionField._factListItems[nextIndex] = newItem;
-            // newItem.RegisterWithFontAndLanguageController(descriptionField._fontAndLanguageController); // just in case...
+            // newItem.RegisterWithFontAndLanguageController(descriptionField._fontAndLanguageController); // just in case... TODO: Not used anymore?
             // TODO: NRE next ShipLogEntryDescriptionField update???
             // TODO: Patch DisplayText DisplayFacts, to clear the rest!
         }

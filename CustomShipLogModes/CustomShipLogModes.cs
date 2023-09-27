@@ -26,6 +26,8 @@ public class CustomShipLogModes : ModBehaviour
 
     private ScreenPrompt _modeSelectorPrompt;
     private ScreenPrompt _modeSwapPrompt;
+    private ScreenPromptList _upperRightPromptListCustom;
+    private CanvasGroupAnimator _upperRightPromptListCustomAnimator;
 
     private void Start()
     {
@@ -51,14 +53,13 @@ public class CustomShipLogModes : ModBehaviour
     public void Setup(ShipLogController shipLogController)
     {
         // We know: Vanilla modes already initialized this frame
-
-        SetupPrompts();
-
         if (_shipLogController != null)
         {
             ModHelper.Console.WriteLine("The ShipLogController is NOT null, something is wrong!", MessageType.Error);
         }
-        _shipLogController = FindObjectOfType<ShipLogController>();
+        _shipLogController = shipLogController;
+        
+        SetupPrompts();
 
         // Initialize all already added modes, even disabled ones
         foreach (ShipLogMode mode in _modes.Keys)
@@ -87,6 +88,27 @@ public class CustomShipLogModes : ModBehaviour
 
     private void SetupPrompts()
     {
+        GameObject upperRightRoot = new GameObject("ScreenPromptList_UpperRightRoot", 
+            typeof(RectTransform), typeof(CanvasGroupAnimator));
+        RectTransform upperRightRootRect = upperRightRoot.GetComponent<RectTransform>();
+        upperRightRootRect.parent = _shipLogController._centerPromptList.transform.parent;
+        upperRightRootRect.localPosition = Vector3.zero;
+        upperRightRootRect.localEulerAngles = Vector3.zero;
+        upperRightRootRect.localScale = Vector3.one;
+        upperRightRootRect.anchoredPosition = new Vector2(0, 0);
+        upperRightRootRect.anchorMin = new Vector2(0, 0);
+        upperRightRootRect.anchorMax = new Vector2(1, 1);
+        upperRightRootRect.sizeDelta = new Vector2(0, 0);
+        upperRightRootRect.pivot = new Vector2(0.5f, 0.5f);
+        _upperRightPromptListCustom = Instantiate(_shipLogController._upperRightPromptListDetective, upperRightRootRect);
+        _upperRightPromptListCustom._reverse = true; // The one from Rumor Mode is, but the field isn't serialized
+        // Sizes managed by the UI size setter (same values as Rumor Mode) TODO: Remove?
+        RectTransform upperRightRect = _upperRightPromptListCustom.transform as RectTransform;
+        upperRightRect.anchoredPosition = new Vector2(-28f, 176.5f); // idk just moving around, this kinda matches Map Mode in regular UI size
+        // I added a root object just for the animation, because otherwise the alternative prompt list added by the reel player mod would be invisible
+        _upperRightPromptListCustomAnimator = upperRightRoot.GetComponent<CanvasGroupAnimator>();
+        _upperRightPromptListCustomAnimator.SetImmediate(0f);
+
         _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModeSelectorMode.Name);
         _modeSwapPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SwapMode), ""); // The text is updated
     }
@@ -95,8 +117,7 @@ public class CustomShipLogModes : ModBehaviour
     {
         bool canvasActive = _shipLogController._shipLogCanvas.gameObject.activeSelf;
         _shipLogController._shipLogCanvas.gameObject.SetActive(true); // I don't remember the point of this...
-        // TODO: These prompts would probably be invisible because they are part of the Map Mode...
-        mode.Initialize(_shipLogController._centerPromptList, _shipLogController._upperRightPromptListMap, _shipLogController._oneShotSource);
+        mode.Initialize(_shipLogController._centerPromptList, _upperRightPromptListCustom, _shipLogController._oneShotSource);
         _shipLogController._shipLogCanvas.gameObject.SetActive(canvasActive);
     }
 
@@ -146,7 +167,7 @@ public class CustomShipLogModes : ModBehaviour
             // We know UpdateMode already happened so no need to worry about Map Mode hiding the prompt 
             swapPrompt = (currentMode as ShipLogMapMode)._detectiveModePrompt;
         }
-        else if (currentMode == _shipLogController._detectiveMode)
+        else if (currentMode == GetDetectiveMode())
         {
             swapPrompt = (currentMode as ShipLogDetectiveMode)._mapModePrompt;
         }
@@ -258,13 +279,25 @@ public class CustomShipLogModes : ModBehaviour
         _shipLogController._currentMode.EnterMode(focusedEntryID);
         // This is done originally done in ShipLogController.Update but we are preventing it with the transpiler
         // Other modes should implement the sound inside EnterMode if they want to
-        if (_shipLogController._currentMode is ShipLogMapMode)
+        if (enteringMode == GetMapMode())
         {
             _shipLogController._oneShotSource.PlayOneShot(AudioType.ShipLogEnterMapMode);
         }
-        else if (_shipLogController._currentMode is ShipLogDetectiveMode)
+        else if (enteringMode == GetDetectiveMode())
         {
             _shipLogController._oneShotSource.PlayOneShot(AudioType.ShipLogEnterDetectiveMode);
+        }
+
+        bool leavingVanilla = leavingMode == GetMapMode() || leavingMode == GetDetectiveMode();
+        bool enteringVanilla = enteringMode == GetMapMode() || enteringMode == GetDetectiveMode();
+        if (leavingVanilla && !enteringVanilla)
+        {
+            // This also works for mode selector
+            _upperRightPromptListCustomAnimator.AnimateTo(1f, Vector3.one, 0.5f);
+        } else if (!leavingVanilla && enteringVanilla)
+        {
+            // Don't animate, looks a bit silly from mode selector to vanilla (I think)
+            _upperRightPromptListCustomAnimator.SetImmediate(0f);
         }
     }
 
@@ -281,7 +314,7 @@ public class CustomShipLogModes : ModBehaviour
         {
             modes.Add(new Tuple<ShipLogMode, string>(GetDetectiveMode(), UITextLibrary.GetString(UITextType.LogRumorModePrompt)));
         }
-        // TODO: Setting to disable Map Mode (might be good for future journal mod)
+        // TODO: Setting to disable Map Mode (might be good for Journal mod)
         modes.Add(new Tuple<ShipLogMode, string>(GetMapMode(), UITextLibrary.GetString(UITextType.LogMapModePrompt)));
 
         return modes;
@@ -315,11 +348,14 @@ public class CustomShipLogModes : ModBehaviour
     {
         // TODO: Review no detective enabled, it always defaults to map mode instead of last mode, probably nobody cares
         PromptManager promptManager = Locator.GetPromptManager();
-        // TODO: Prompt list for each custom mode?
+        promptManager.AddScreenPrompt(_shipLogController._exitPrompt, _upperRightPromptListCustom, TextAnchor.MiddleRight);
+        
         promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptListMap, TextAnchor.MiddleRight);
         promptManager.AddScreenPrompt(_modeSelectorPrompt, _shipLogController._upperRightPromptListDetective, TextAnchor.MiddleRight);
-        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptListMap, TextAnchor.MiddleRight);
-        promptManager.AddScreenPrompt(_modeSwapPrompt, _shipLogController._upperRightPromptListDetective, TextAnchor.MiddleRight);
+        promptManager.AddScreenPrompt(_modeSelectorPrompt, _upperRightPromptListCustom, TextAnchor.MiddleRight);
+        
+        // Vanilla modes already have their own prompts for swap (although added on enter mode, not computer)
+        promptManager.AddScreenPrompt(_modeSwapPrompt, _upperRightPromptListCustom, TextAnchor.MiddleRight);
         foreach (ShipLogMode mode in GetCustomModes())
         {
             mode.OnEnterComputer();
