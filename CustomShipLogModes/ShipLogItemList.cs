@@ -89,6 +89,19 @@ public class ShipLogItemList : MonoBehaviour
             Destroy(mapModeCopy._scaleRoot.gameObject);
             Destroy(mapModeCopy._reticleAnimator.gameObject);
             Destroy(mapModeCopy);
+            
+            // Destroy UI size setters, set to regular before TODO: Changeable?
+            // This is also IMPORTANT to fix the issue of the vertical expand (without desc field) not working
+            foreach (BaseUiSizeSetter sizeSetter in mapModeCopy.GetComponentsInChildren<BaseUiSizeSetter>())
+            {
+                if (!sizeSetter._requiresExternalInitialization)
+                {
+                    // For UiSizeSetterShipLogEntry this would need an entry (for sub entry check0,
+                    // hopefully the already set values are the desired (also for mark on HUD prompt)
+                    sizeSetter.DoResizeAction(UITextSize.SMALL);
+                }
+                Destroy(sizeSetter);
+            }
 
             // Parent object for all item lists
             GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
