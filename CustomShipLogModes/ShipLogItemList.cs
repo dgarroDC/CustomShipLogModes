@@ -9,7 +9,7 @@ namespace CustomShipLogModes;
 // Heavily based on ShipLogMapMode
 public class ShipLogItemList : MonoBehaviour
 {
-    private static GameObject _prefab;
+    private static GameObject _prefab; // This is reset on scene load
     private static Transform _commonParent;
 
     private const int TotalUIItems = 14;
@@ -27,6 +27,7 @@ public class ShipLogItemList : MonoBehaviour
     public GameObject markOnHUDPromptRoot;
     public ScreenPromptList markHUDPromptList;
 
+    // TODO: Fix this, it isn't working??????!
     public UiSizeSetterRectTransform descriptionFieldSizeSetter;
 
     public int selectedIndex;
@@ -42,7 +43,7 @@ public class ShipLogItemList : MonoBehaviour
         CustomShipLogModes.Instance.ModHelper.Events.Unity.FireOnNextUpdate(() =>
         {
             GameObject prefab = Instantiate(mapMode.gameObject); // TODO: Keep each loop? What about DescriptionField?
-            prefab.name = "ItemsList";
+            prefab.name = "ItemList";
             ShipLogItemList itemList = prefab.AddComponent<ShipLogItemList>();
             itemList.oneShotSource = mapMode._oneShotSource; // Not serialized, so no in mapModeCopy, and doesn't belong to map mode
 
@@ -50,7 +51,7 @@ public class ShipLogItemList : MonoBehaviour
             ShipLogMapMode mapModeCopy = prefab.GetComponent<ShipLogMapMode>();
             itemList.mapModeAnimator = mapModeCopy._mapModeAnimator;
             itemList.entryMenuAnimator = mapModeCopy._entryMenuAnimator;
-            itemList.photo = mapModeCopy._photo;
+            itemList.photo = mapModeCopy._photo; // For now, we would switch to the "mask" bellow
             itemList.questionMark = mapModeCopy._questionMark;
             itemList.entrySelectArrow = mapModeCopy._entrySelectArrow;
             itemList.nameField = mapModeCopy._nameField;
@@ -60,16 +61,29 @@ public class ShipLogItemList : MonoBehaviour
 
             itemList.descriptionFieldSizeSetter = itemList.descriptionField.GetComponent<UiSizeSetterRectTransform>();
 
-            try
+            // Destroy UI size setters, set to regular before TODO: Changeable?
+            // This is also IMPORTANT to fix the issue of the vertical expand (without desc field) not working
+            foreach (BaseUiSizeSetter sizeSetter in mapModeCopy.GetComponentsInChildren<BaseUiSizeSetter>())
             {
-                itemList.photo.transform.parent.GetComponent<WorldSpaceMask>().showMaskGraphic = false;
+                if (!sizeSetter._requiresExternalInitialization)
+                {
+                    // For UiSizeSetterShipLogEntry this would need an entry (for sub entry check0,
+                    // hopefully the already set values are the desired (also for mark on HUD prompt)
+                    sizeSetter.DoResizeAction(UITextSize.SMALL);
+                }
+                Destroy(sizeSetter);
             }
-            catch (Exception e)
-            {
-                // Just in case this is removed in next hotfix (but it will probably disable the graphic like here):
-                // https://discord.com/channels/929708786027999262/929787137895854100/1156019963778314291 (Jeff)
-                CustomShipLogModes.Instance.ModHelper.Console.WriteLine("Couldn't disable mask image, ignoring: " + e, MessageType.Error);
-            }
+
+            // Photo correction for OW Patch 14
+            Transform photoMask = itemList.photo.transform.parent;
+            RectTransform photoRoot = photoMask.parent as RectTransform;
+            RectTransform entryMenu = photoRoot!.parent as RectTransform;
+            photoRoot.sizeDelta = new Vector2(entryMenu!.sizeDelta.y, 0); // It was 320 instead of 315, not square!!! Important to do after the resizing!
+            Destroy(photoMask.GetComponent<WorldSpaceMask>()); // Important to get rid of NRE
+            photoMask.name = itemList.photo.name;
+            Destroy(itemList.photo.gameObject);
+            itemList.photo = photoMask.GetComponent<Image>();
+            // We have (-3, -3) sizeDelta, idk, maybe for the border? I see some gaps, but if I disable, looks uglu in reels...
 
             // By default disabled
             itemList.questionMark.gameObject.SetActive(false);
@@ -105,25 +119,13 @@ public class ShipLogItemList : MonoBehaviour
             Destroy(mapModeCopy._scaleRoot.gameObject);
             Destroy(mapModeCopy._reticleAnimator.gameObject);
             Destroy(mapModeCopy);
-            
-            // Destroy UI size setters, set to regular before TODO: Changeable?
-            // This is also IMPORTANT to fix the issue of the vertical expand (without desc field) not working
-            foreach (BaseUiSizeSetter sizeSetter in mapModeCopy.GetComponentsInChildren<BaseUiSizeSetter>())
-            {
-                if (!sizeSetter._requiresExternalInitialization)
-                {
-                    // For UiSizeSetterShipLogEntry this would need an entry (for sub entry check0,
-                    // hopefully the already set values are the desired (also for mark on HUD prompt)
-                    sizeSetter.DoResizeAction(UITextSize.SMALL);
-                }
-                Destroy(sizeSetter);
-            }
 
             // Parent object for all item lists
-            GameObject commonParentGo = new GameObject("ItemsListsParent", typeof(RectTransform));
+            GameObject commonParentGo = new GameObject("ItemListsParent", typeof(RectTransform));
             _commonParent = commonParentGo.transform;
             _commonParent.parent = mapMode.transform.parent;
             _commonParent.localScale = Vector3.one;
+            // TODO: Improve this, group of item lists after vanilla modes
             // We want to see the prompts on top of the modes! Don't use the upper right one here, since it's the one for Map Mode
             mapMode._centerPromptList.transform.parent.SetAsLastSibling();
 
