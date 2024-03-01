@@ -22,7 +22,7 @@ public class CustomShipLogModes : ModBehaviour
     private ShipLogMode _nextMode; // TODO: Move to variable?
     
     private ShipLogController _shipLogController;
-    private ShipLogMode _requestedChaneMode;
+    private ShipLogMode _requestedChangeMode;
 
     private ScreenPrompt _modeSelectorPrompt;
     private ScreenPrompt _modeSwapPrompt;
@@ -39,6 +39,7 @@ public class CustomShipLogModes : ModBehaviour
     public override object GetApi() {
         return new CustomShipLogModesAPI();
     }
+
     public override void Configure(IModConfig config) {
         _cycleModes = config.GetSettingsValue<bool>("Cycle through modes");
     }
@@ -139,11 +140,11 @@ public class CustomShipLogModes : ModBehaviour
     public void RequestChangeMode(ShipLogMode mode)
     {
         // We don't want modes to directly change the mode because that could cause
-        // for example closing ana reopening the selector in the same frame because postfix
+        // for example closing and reopening the selector in the same frame because postfix (what?)
         // TODO: Add this to API? Check is the current mode?
-        if (_requestedChaneMode == null)
+        if (_requestedChangeMode == null)
         {
-            _requestedChaneMode = mode;
+            _requestedChangeMode = mode;
         } 
     }
 
@@ -234,10 +235,10 @@ public class CustomShipLogModes : ModBehaviour
 
     internal void UpdateChangeMode()
     {
-        if (_requestedChaneMode != null)
+        if (_requestedChangeMode != null)
         {
-            ChangeMode(_requestedChaneMode);
-            _requestedChaneMode = null;
+            ChangeMode(_requestedChangeMode);
+            _requestedChangeMode = null;
             return;
         }
         
