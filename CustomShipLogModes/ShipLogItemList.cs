@@ -212,7 +212,7 @@ public class ShipLogItemList : MonoBehaviour
     {
         // Keep the same scrolling behaviour as Map Mode but with fixed UI elements that we populate, like in Suit Log
         int shownItems = _useDescField ? TotalUIItemsWithDescriptionField : TotalUIItems;
-        int lastSelectable = 4; // Scroll after that  // TODO: More for without desc field?
+        int lastSelectable = shownItems - 3; // Scroll after that, the last two aren't selectable
         int itemIndexOnTop = selectedIndex <= lastSelectable ? 0 : selectedIndex - lastSelectable;
         for (int i = 0; i < uiItems.Count; i++)
         {
@@ -237,19 +237,19 @@ public class ShipLogItemList : MonoBehaviour
                 uiItem._moreToExploreIcon.gameObject.SetActive(item.Item4);
                 
                 float listAlpha = 1f;
-                // This replicates the vanilla look, entries with index 6 (last), 5 and 4 have this alphas,
+                // This replicates the vanilla look, entries with index 6 (last), 5 and 4 have thse alphas,
                 // although is weird that 4 also has that alpha even if selected
                 // We interpret it as "the last" entries so in the mode without desc field we also use these values
                 // for the last 3 displayed items
-                if (i == shownItems - 1)
+                if (i == shownItems - 1) // lastSelectable + 2
                 {
                     listAlpha = 0.05f;
                 }
-                else if (i == shownItems -2)
+                else if (i == shownItems - 2) // lastSelectable + 1
                 {
                     listAlpha = 0.2f;
                 }
-                else if (i == shownItems - 3)
+                else if (i == shownItems - 3) // lastSelectable
                 {
                     listAlpha = 0.5f;
                 }
