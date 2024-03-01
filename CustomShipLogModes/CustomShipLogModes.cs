@@ -309,13 +309,13 @@ public class CustomShipLogModes : ModBehaviour
             .OrderBy(mode => mode.Item2)
             .ToList();
 
-        // Add vanilla modes
+        // Add vanilla modes at top
+        // TODO: Setting to disable Map Mode (might be good for Journal mod)
+        modes.Insert(0, new Tuple<ShipLogMode, string>(GetMapMode(), UITextLibrary.GetString(UITextType.LogMapModePrompt)));
         if (PlayerData.GetDetectiveModeEnabled())
         {
-            modes.Add(new Tuple<ShipLogMode, string>(GetDetectiveMode(), UITextLibrary.GetString(UITextType.LogRumorModePrompt)));
+            modes.Insert(0, new Tuple<ShipLogMode, string>(GetDetectiveMode(), UITextLibrary.GetString(UITextType.LogRumorModePrompt)));
         }
-        // TODO: Setting to disable Map Mode (might be good for Journal mod)
-        modes.Add(new Tuple<ShipLogMode, string>(GetMapMode(), UITextLibrary.GetString(UITextType.LogMapModePrompt)));
 
         return modes;
     }
