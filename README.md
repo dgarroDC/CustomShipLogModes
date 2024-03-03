@@ -6,7 +6,7 @@ This utility mod allows other mods to add their custom Ship Log modes. Now you c
 
 ## User Guide
 
-The mod adds a prompt to open a menu to select all the custom and vanilla modes (custom modes are at the top sorted alphabetically and the vanilla modes are at the bottom) using the flashlight key (**F key** by default on the keyboard):
+The mod adds a prompt to open a menu to select all the custom and vanilla modes (vanilla modes are at the top and the custom modes are at the bottom sorted alphabetically) using the flashlight key (**F key** by default on the keyboard):
 
 ![menu example](images/menu-example.webp)
 
