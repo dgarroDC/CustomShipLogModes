@@ -121,13 +121,12 @@ public class ShipLogItemList : MonoBehaviour
             Destroy(mapModeCopy);
 
             // Parent object for all item lists
-            GameObject commonParentGo = new GameObject("ItemListsParent", typeof(RectTransform));
+            GameObject commonParentGo = new GameObject("ItemListsRoot", typeof(RectTransform));
             _commonParent = commonParentGo.transform;
             _commonParent.parent = mapMode.transform.parent;
             _commonParent.localScale = Vector3.one;
-            // TODO: Improve this, group of item lists after vanilla modes
-            // We want to see the prompts on top of the modes! Don't use the upper right one here, since it's the one for Map Mode
-            mapMode._centerPromptList.transform.parent.SetAsLastSibling();
+            _commonParent.SetSiblingIndex(itemList.descriptionField.transform.GetSiblingIndex() + 1);
+            // Maybe making it next to the vanilla mode makes more sense, but it seems better after desc field (for example, Journal's cursor)
 
             // Add enough room for arbitrary text in the description field
             RectTransform factList = itemList.descriptionField._factListItems[0].transform.parent as RectTransform;
