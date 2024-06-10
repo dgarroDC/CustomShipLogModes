@@ -13,7 +13,7 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="OWML" Version="2.7.0" />
-        <PackageReference Include="OuterWildsGameLibs" Version="1.1.14.768" />
+        <PackageReference Include="OuterWildsGameLibs" Version="1.1.15.1018" />
         <PackageReference Include="HarmonyX" Version="2.10.0" />
     </ItemGroup>
     <ItemGroup>
