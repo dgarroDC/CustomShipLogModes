@@ -27,9 +27,6 @@ public class ShipLogItemList : MonoBehaviour
     public GameObject markOnHUDPromptRoot;
     public ScreenPromptList markHUDPromptList;
 
-    // TODO: Fix this, it isn't working??????!
-    public UiSizeSetterRectTransform descriptionFieldSizeSetter;
-
     public int selectedIndex;
     public List<ShipLogEntryListItem> uiItems;
     public List<Tuple<string, bool, bool, bool>> contentsItems = new();
@@ -58,8 +55,6 @@ public class ShipLogItemList : MonoBehaviour
             itemList.descriptionField = mapModeCopy._descriptionField;
             itemList.markOnHUDPromptRoot = mapModeCopy._markOnHUDPromptRoot;
             itemList.markHUDPromptList = mapModeCopy._markHUDPromptList;
-
-            itemList.descriptionFieldSizeSetter = itemList.descriptionField.GetComponent<UiSizeSetterRectTransform>();
 
             // Destroy UI size setters, set to regular before TODO: Changeable?
             // This is also IMPORTANT to fix the issue of the vertical expand (without desc field) not working
@@ -190,7 +185,6 @@ public class ShipLogItemList : MonoBehaviour
         if (_useDescField)
         {
             // TODO: Changeable?
-            descriptionFieldSizeSetter.DoResizeAction(UITextSize.SMALL);
             descriptionField.SetVisible(true);
         }
     }
@@ -202,8 +196,6 @@ public class ShipLogItemList : MonoBehaviour
         if (_useDescField)
         {
             descriptionField.SetVisible(false);
-            // Since this is shared (for now?), restore the size for vanilla...
-            descriptionFieldSizeSetter.DoResizeAction(PlayerData.GetTextSize());
         }
     }
 
