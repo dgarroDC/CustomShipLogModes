@@ -8,9 +8,6 @@ namespace CustomShipLogModes;
 
 public class ModeSelectorMode : ShipLogMode
 {
-    // TODO: Translation
-    public const string Name = "Select Mode";
-    
     public ItemListWrapper itemList;
 
     private List<Tuple<ShipLogMode,string>> _modes = new();
@@ -50,9 +47,14 @@ public class ModeSelectorMode : ShipLogMode
         _upperRightPromptList = upperRightPromptList;
         _oneShotSource = oneShotSource;
         
-        itemList.SetName(Name);
+        itemList.SetName(GetName());
 
         SetupPrompts();
+    }
+
+    public static string GetName()
+    {
+        return TranslationHandler.GetTranslation("SELECT_MODE");
     }
 
     private void SetupPrompts()
@@ -64,17 +66,16 @@ public class ModeSelectorMode : ShipLogMode
 
     private void UpdatePromptsVisibility()
     {
-        // TODO: Translations
         int goBackFind = GoBackModeIndex();
         bool canGoBack = goBackFind != -1;
         _closePrompt.SetVisibility(canGoBack);
         if (canGoBack)
         {
-            _closePrompt.SetText("Go Back To " + GetModeName(goBackFind));
+            _closePrompt.SetText(TranslationHandler.GetTranslation("GO_BACK").Replace("{0}", GetModeName(goBackFind)));
         }
 
         _selectPrompt.SetVisibility(true); // This is always possible I guess?
-        _selectPrompt.SetText("Select " + GetModeName(itemList.GetSelectedIndex()));
+        _selectPrompt.SetText(TranslationHandler.GetTranslation("SELECT").Replace("{0}", GetModeName(itemList.GetSelectedIndex())));
     }
 
     // TODO: Review removed modes, etc. Index still working?

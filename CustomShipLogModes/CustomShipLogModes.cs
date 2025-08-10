@@ -109,7 +109,7 @@ public class CustomShipLogModes : ModBehaviour
         _upperRightPromptListCustomAnimator = upperRightRoot.GetComponent<CanvasGroupAnimator>();
         _upperRightPromptListCustomAnimator.SetImmediate(0f);
 
-        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModeSelectorMode.Name);
+        _modeSelectorPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.OpenModeSelector), ModeSelectorMode.GetName());
         _modeSwapPrompt = new ScreenPrompt(Input.PromptCommands(Input.Action.SwapMode), ""); // The text is updated
     }
 
